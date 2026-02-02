@@ -54,11 +54,6 @@ Build a lightweight, production-feeling Trello-style kanban SPA with a clean, re
 - Drag-and-drop: use `data-*` attributes to store ids, set `draggable=true` on cards, and maintain a lightweight drag overlay for smooth visuals.
 - Undo stack: implement a simple undo for destructive actions (delete list/card) via ephemeral toasts with an undo button.
 
-## Testing, QA & Performance
-- Cross-browser: validate on Chromium-based, Firefox, and Safari (desktop + mobile). Test touch drag interactions.
-- Accessibility testing: run axe or Lighthouse audits and fix high-severity issues.
-- Performance: avoid layout thrashing; use transforms for position changes; limit expensive DOM operations during drag.
-
 ## Deliverables
 - A runnable single-page frontend that opens in the browser (no build step required) and demonstrates all core features.
 - A short README with run instructions and design decisions.

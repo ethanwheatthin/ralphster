@@ -189,26 +189,52 @@ class CopilotAgentManager {
       agent.currentIteration = 1;
       agent.startedAt = new Date().toISOString();
 
-      // Handle stdout
+      // Buffer for incomplete lines
+      let stdoutBuffer = '';
+      let stderrBuffer = '';
+
+      // Handle stdout - buffer by lines for cleaner output
       process.stdout.on('data', (data) => {
-        const output = this.stripAnsiCodes(data.toString());
-        console.log(`[CopilotAgent] STDOUT: ${output.substring(0, 100)}...`);
-        this.addLog(id, 'stdout', output);
+        stdoutBuffer += data.toString();
+        const lines = stdoutBuffer.split(/\r?\n/);
         
-        // Parse iteration count if present
-        const iterationMatch = output.match(/Iteration #(\d+)/);
-        if (iterationMatch) {
-          agent.currentIteration = parseInt(iterationMatch[1]);
-          console.log(`[CopilotAgent] Iteration #${agent.currentIteration}`);
-          this.broadcast('copilot-agent:iteration', { id, iteration: agent.currentIteration });
-        }
+        // Keep the last incomplete line in the buffer
+        stdoutBuffer = lines.pop() || '';
+        
+        // Process complete lines
+        lines.forEach(line => {
+          if (line.trim()) {
+            const output = this.stripAnsiCodes(line);
+            console.log(`[CopilotAgent] STDOUT: ${output}`);
+            this.addLog(id, 'stdout', output);
+            
+            // Parse iteration count if present
+            const iterationMatch = output.match(/Iteration #(\d+)/);
+            if (iterationMatch) {
+              agent.currentIteration = parseInt(iterationMatch[1]);
+              console.log(`[CopilotAgent] Iteration #${agent.currentIteration}`);
+              this.broadcast('copilot-agent:iteration', { id, iteration: agent.currentIteration });
+            }
+          }
+        });
       });
 
-      // Handle stderr
+      // Handle stderr - buffer by lines for cleaner output
       process.stderr.on('data', (data) => {
-        const output = this.stripAnsiCodes(data.toString());
-        console.error(`[CopilotAgent] STDERR: ${output}`);
-        this.addLog(id, 'stderr', output);
+        stderrBuffer += data.toString();
+        const lines = stderrBuffer.split(/\r?\n/);
+        
+        // Keep the last incomplete line in the buffer
+        stderrBuffer = lines.pop() || '';
+        
+        // Process complete lines
+        lines.forEach(line => {
+          if (line.trim()) {
+            const output = this.stripAnsiCodes(line);
+            console.error(`[CopilotAgent] STDERR: ${output}`);
+            this.addLog(id, 'stderr', output);
+          }
+        });
       });
 
       // Handle process exit
