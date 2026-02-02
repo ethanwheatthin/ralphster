@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Agent, LogEntry, CreateAgentRequest } from './types';
+import { Agent, LogEntry, CreateAgentRequest, UpdateAgentRequest } from './types';
 import ApiService from './services/api';
 import AgentCard from './components/AgentCard';
 import CreateAgentModal from './components/CreateAgentModal';
+import EditAgentModal from './components/EditAgentModal';
 import LogViewer from './components/LogViewer';
 import ModelManager from './components/ModelManager';
 import { Plus, RefreshCw } from 'lucide-react';
@@ -14,6 +15,7 @@ function App() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showModelManager, setShowModelManager] = useState(false);
   const [selectedAgentLogs, setSelectedAgentLogs] = useState<{ agent: Agent; logs: LogEntry[] } | null>(null);
+  const [editingAgent, setEditingAgent] = useState<{ agent: Agent; prompt: string } | null>(null);
 
   useEffect(() => {
     loadAgents();
@@ -126,7 +128,8 @@ function App() {
       await ApiService.deleteAgent(id);
     } catch (error) {
       console.error('Failed to delete agent:', error);
-      alert('Failed to delete agent. Check console for details.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to delete agent: ${errorMessage}`);
     }
   };
 
@@ -141,16 +144,33 @@ function App() {
   };
 
   const handleEditAgent = async (agent: Agent) => {
-    const prompt = await ApiService.getPrompt(agent.id);
-    const newPrompt = window.prompt('Edit PROMPT.md:', prompt);
-    if (newPrompt !== null && newPrompt !== prompt) {
-      try {
-        await ApiService.updatePrompt(agent.id, newPrompt);
-        alert('Prompt updated successfully!');
-      } catch (error) {
-        console.error('Failed to update prompt:', error);
-        alert('Failed to update prompt. Check console for details.');
-      }
+    try {
+      const prompt = await ApiService.getPrompt(agent.id);
+      setEditingAgent({ agent, prompt });
+    } catch (error) {
+      console.error('Failed to load agent data:', error);
+      alert('Failed to load agent data. Check console for details.');
+    }
+  };
+
+  const handleUpdateAgent = async (id: string, data: UpdateAgentRequest) => {
+    try {
+      await ApiService.updateAgent(id, data);
+      await loadAgents();
+      setEditingAgent(null);
+      alert('Agent updated successfully!');
+    } catch (error) {
+      console.error('Failed to update agent:', error);
+      alert('Failed to update agent. Check console for details.');
+    }
+  };
+
+  const handleOpenDirectory = async (id: string) => {
+    try {
+      await ApiService.openAgentDirectory(id);
+    } catch (error) {
+      console.error('Failed to open directory:', error);
+      // alert('Failed to open directory. Check console for details.');
     }
   };
 
@@ -216,6 +236,7 @@ function App() {
                 onDelete={() => handleDeleteAgent(agent.id)}
                 onViewLogs={() => handleViewLogs(agent)}
                 onEdit={() => handleEditAgent(agent)}
+                onOpenDirectory={() => handleOpenDirectory(agent.id)}
               />
             ))}
           </div>
@@ -226,6 +247,15 @@ function App() {
         <CreateAgentModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateAgent}
+        />
+      )}
+
+      {editingAgent && (
+        <EditAgentModal
+          agent={editingAgent.agent}
+          initialPrompt={editingAgent.prompt}
+          onClose={() => setEditingAgent(null)}
+          onUpdate={handleUpdateAgent}
         />
       )}
 

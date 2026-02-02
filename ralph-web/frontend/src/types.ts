@@ -23,3 +23,10 @@ export interface CreateAgentRequest {
   promptContent: string;
   maxIterations: number;
 }
+
+export interface UpdateAgentRequest {
+  name: string;
+  model: string;
+  promptContent: string;
+  maxIterations: number;
+}

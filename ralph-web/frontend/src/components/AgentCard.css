@@ -121,6 +121,14 @@
   background: #2563eb;
 }
 
+.btn-folder {
+  background: #f59e0b;
+}
+
+.btn-folder:hover {
+  background: #d97706;
+}
+
 .btn-edit {
   background: #8b5cf6;
 }

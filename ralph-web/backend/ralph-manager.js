@@ -173,19 +173,48 @@ class RalphManager {
     if (agent.status !== 'running') throw new Error('Agent not running');
 
     if (agent.process) {
-      // Send SIGINT (Ctrl+C) to gracefully stop
-      agent.process.kill('SIGINT');
-      
-      // Force kill after timeout
-      setTimeout(() => {
-        if (agent.process && !agent.process.killed) {
-          agent.process.kill('SIGKILL');
-        }
-      }, 5000);
-    }
+      agent.status = 'stopping';
+      this.broadcast('agent:stopping', { id });
+      this.addLog(id, 'system', 'Stopping agent...');
 
-    agent.status = 'stopping';
-    this.broadcast('agent:stopping', { id });
+      try {
+        // On Windows, kill the entire process tree
+        if (process.platform === 'win32') {
+          // Use taskkill to forcefully terminate the process tree
+          const { exec } = require('child_process');
+          exec(`taskkill /pid ${agent.process.pid} /T /F`, (error) => {
+            if (error) {
+              this.addLog(id, 'system', `Taskkill error: ${error.message}`);
+            }
+          });
+        } else {
+          // On Unix-like systems, send SIGTERM then SIGKILL
+          agent.process.kill('SIGTERM');
+        }
+
+        // Force kill after timeout if still running
+        setTimeout(() => {
+          if (agent.process && !agent.process.killed) {
+            this.addLog(id, 'system', 'Force killing process...');
+            try {
+              if (process.platform === 'win32') {
+                const { exec } = require('child_process');
+                exec(`taskkill /pid ${agent.process.pid} /T /F`);
+              } else {
+                agent.process.kill('SIGKILL');
+              }
+            } catch (e) {
+              this.addLog(id, 'error', `Force kill failed: ${e.message}`);
+            }
+          }
+        }, 3000);
+
+      } catch (error) {
+        this.addLog(id, 'error', `Stop error: ${error.message}`);
+        agent.status = 'error';
+        this.broadcast('agent:error', { id, error: error.message });
+      }
+    }
   }
 
   async deleteAgent(id) {
@@ -195,11 +224,26 @@ class RalphManager {
     // Stop if running
     if (agent.status === 'running') {
       await this.stopAgent(id);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait longer for process to fully terminate
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
-    // Delete workspace
-    await fs.remove(agent.workspaceDir);
+    // Try to delete workspace with retries
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await fs.remove(agent.workspaceDir);
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) {
+          this.addLog(id, 'error', `Failed to delete workspace: ${error.message}`);
+          throw new Error(`Failed to delete workspace. It may be locked by another process. Try stopping the agent first and waiting a moment.`);
+        }
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
     
     this.agents.delete(id);
     await this.saveAgents();
@@ -293,10 +337,16 @@ class RalphManager {
     const stopPromises = [];
     for (const [id, agent] of this.agents) {
       if (agent.status === 'running') {
-        stopPromises.push(this.stopAgent(id).catch(err => console.error(`Error stopping ${id}:`, err)));
+        stopPromises.push(
+          this.stopAgent(id)
+            .catch(err => console.error(`Error stopping ${id}:`, err))
+        );
       }
     }
     await Promise.all(stopPromises);
+    
+    // Wait for all processes to terminate
+    await new Promise(resolve => setTimeout(resolve, 3000));
   }
 }
 

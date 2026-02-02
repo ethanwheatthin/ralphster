@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Agent, LogEntry, CreateAgentRequest } from '../types';
+import { Agent, LogEntry, CreateAgentRequest, UpdateAgentRequest } from '../types';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -44,6 +44,16 @@ class ApiService {
     return response.json();
   }
 
+  async updateAgent(id: string, data: UpdateAgentRequest): Promise<Agent> {
+    const response = await fetch(`${API_URL}/api/agents/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update agent');
+    return response.json();
+  }
+
   async startAgent(id: string): Promise<void> {
     const response = await fetch(`${API_URL}/api/agents/${id}/start`, {
       method: 'POST'
@@ -62,7 +72,10 @@ class ApiService {
     const response = await fetch(`${API_URL}/api/agents/${id}`, {
       method: 'DELETE'
     });
-    if (!response.ok) throw new Error('Failed to delete agent');
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to delete agent' }));
+      throw new Error(error.error || 'Failed to delete agent');
+    }
   }
 
   async getPrompt(id: string): Promise<string> {
@@ -86,6 +99,20 @@ class ApiService {
     if (!response.ok) throw new Error('Failed to fetch logs');
     const data = await response.json();
     return data.logs;
+  }
+
+  async getOllamaModels(): Promise<string[]> {
+    const response = await fetch(`${API_URL}/api/ollama/models`);
+    if (!response.ok) throw new Error('Failed to fetch Ollama models');
+    const data = await response.json();
+    return data.models.map((model: any) => model.name);
+  }
+
+  async openAgentDirectory(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/agents/${id}/open-directory`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to open directory');
   }
 }
 

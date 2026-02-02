@@ -164,6 +164,30 @@ app.get('/api/ollama/status', async (req, res) => {
   }
 });
 
+// Open agent directory in file explorer
+app.post('/api/agents/:id/open-directory', (req, res) => {
+  try {
+    const agent = ralphManager.getAgent(req.params.id);
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+    
+    const { exec } = require('child_process');
+    const workspaceDir = agent.workspaceDir;
+    
+    // Open in Windows Explorer
+    exec(`explorer "${workspaceDir}"`, (error) => {
+      if (error) {
+        console.error('Error opening directory:', error);
+        return res.status(500).json({ error: 'Failed to open directory' });
+      }
+      res.json({ success: true });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // WebSocket connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

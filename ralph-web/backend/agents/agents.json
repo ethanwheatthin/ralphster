@@ -1,18 +1,10 @@
 [
   {
-    "id": "ac531a2e-0138-4cfb-9b42-6412e32685df",
-    "name": "test_files",
+    "id": "9a1df1bc-a214-4050-b586-aa7301f04a39",
+    "name": "Apples",
     "model": "gpt-oss:20b",
-    "maxIterations": 3,
-    "createdAt": "2026-02-02T02:17:31.949Z",
-    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\ac531a2e-0138-4cfb-9b42-6412e32685df"
-  },
-  {
-    "id": "ec063f48-556c-48a3-a299-3475d406bf2d",
-    "name": "print agent",
-    "model": "qwen3:4b",
-    "maxIterations": 3,
-    "createdAt": "2026-02-02T02:31:55.709Z",
-    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\ec063f48-556c-48a3-a299-3475d406bf2d"
+    "maxIterations": 0,
+    "createdAt": "2026-02-02T03:11:44.227Z",
+    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\9a1df1bc-a214-4050-b586-aa7301f04a39"
   }
 ]

@@ -12,4 +12,5 @@ declare module 'lucide-react' {
   export const RefreshCw: FC<SVGProps<SVGSVGElement> & { size?: number }>;
   export const Cpu: FC<SVGProps<SVGSVGElement> & { size?: number }>;
   export const HardDrive: FC<SVGProps<SVGSVGElement> & { size?: number }>;
+  export const Folder: FC<SVGProps<SVGSVGElement> & { size?: number }>;
 }

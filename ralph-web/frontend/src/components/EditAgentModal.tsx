@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { CreateAgentRequest } from '../types';
+import { Agent } from '../types';
 import ApiService from '../services/api';
 import { X } from 'lucide-react';
 import './CreateAgentModal.css';
 
-interface CreateAgentModalProps {
+interface EditAgentModalProps {
+  agent: Agent;
+  initialPrompt: string;
   onClose: () => void;
-  onCreate: (data: CreateAgentRequest) => void;
+  onUpdate: (id: string, data: EditAgentData) => void;
 }
 
-const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }) => {
-  const [formData, setFormData] = useState<CreateAgentRequest>({
-    name: '',
-    model: 'qwen3-coder',
-    promptContent: `# Ralph Agent Task\n\n## Task Description\n\nDescribe your task here...\n\n## Requirements\n\n- Requirement 1\n- Requirement 2\n\n## Constraints\n\n- Keep code simple and maintainable\n- Write tests\n`,
-    maxIterations: 0
+export interface EditAgentData {
+  name: string;
+  model: string;
+  promptContent: string;
+  maxIterations: number;
+}
+
+const EditAgentModal: React.FC<EditAgentModalProps> = ({ agent, initialPrompt, onClose, onUpdate }) => {
+  const [formData, setFormData] = useState<EditAgentData>({
+    name: agent.name,
+    model: agent.model,
+    promptContent: initialPrompt,
+    maxIterations: agent.maxIterations
   });
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
@@ -27,9 +36,6 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
     try {
       const models = await ApiService.getOllamaModels();
       setAvailableModels(models);
-      if (models.length > 0 && !formData.model) {
-        setFormData(prev => ({ ...prev, model: models[0] }));
-      }
     } catch (error) {
       console.error('Failed to load models:', error);
     } finally {
@@ -39,14 +45,14 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreate(formData);
+    onUpdate(agent.id, formData);
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>🍩 Create New Ralph Agent</h2>
+          <h2>✏️ Edit Agent: {agent.name}</h2>
           <button className="close-btn" onClick={onClose}>
             <X size={24} />
           </button>
@@ -119,7 +125,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
           </div>
 
           <div className="form-group">
-            <label htmlFor="promptContent">Initial Prompt (PROMPT.md) *</label>
+            <label htmlFor="promptContent">Prompt (PROMPT.md) *</label>
             <textarea
               id="promptContent"
               value={formData.promptContent}
@@ -135,7 +141,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
               Cancel
             </button>
             <button type="submit" className="btn-primary">
-              Create Agent
+              Update Agent
             </button>
           </div>
         </form>
@@ -144,4 +150,4 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
   );
 };
 
-export default CreateAgentModal;
+export default EditAgentModal;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Agent } from '../types';
-import { Play, Square, Trash2, Edit2, Terminal } from 'lucide-react';
+import { Play, Square, Trash2, Edit2, Terminal, Folder } from 'lucide-react';
 import './AgentCard.css';
 
 interface AgentCardProps {
@@ -10,6 +10,7 @@ interface AgentCardProps {
   onDelete: () => void;
   onViewLogs: () => void;
   onEdit: () => void;
+  onOpenDirectory: () => void;
 }
 
 const AgentCard: React.FC<AgentCardProps> = ({
@@ -18,7 +19,8 @@ const AgentCard: React.FC<AgentCardProps> = ({
   onStop,
   onDelete,
   onViewLogs,
-  onEdit
+  onEdit,
+  onOpenDirectory
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -86,6 +88,11 @@ const AgentCard: React.FC<AgentCardProps> = ({
         <button className="btn btn-logs" onClick={onViewLogs}>
           <Terminal size={16} />
           Logs
+        </button>
+        
+        <button className="btn btn-folder" onClick={onOpenDirectory}>
+          <Folder size={16} />
+          Folder
         </button>
         
         <button className="btn btn-edit" onClick={onEdit}>
