@@ -186,7 +186,7 @@ class CopilotAgentManager {
 
       agent.process = process;
       agent.status = 'running';
-      agent.currentIteration = 0;
+      agent.currentIteration = 1;
       agent.startedAt = new Date().toISOString();
 
       // Handle stdout
@@ -212,29 +212,52 @@ class CopilotAgentManager {
       });
 
       // Handle process exit
-      process.on('exit', (code, signal) => {
+      process.on('exit', async (code, signal) => {
         console.log(`[CopilotAgent] Process exited - Code: ${code}, Signal: ${signal}`);
-        agent.status = 'stopped';
-        agent.stoppedAt = new Date().toISOString();
-        agent.process = null;
-
+        
         this.addLog(id, 'system', ``);
         this.addLog(id, 'system', `─────────────────────────────────────────────────────────────`);
         
         if (code === 0) {
-          console.log(`[CopilotAgent] ✓ Agent completed successfully`);
-          this.addLog(id, 'system', `✓ Agent completed successfully (exit code: ${code})`);
+          console.log(`[CopilotAgent] ✓ Iteration completed successfully`);
+          this.addLog(id, 'system', `✓ Iteration #${agent.currentIteration} completed successfully (exit code: ${code})`);
+          
+          // Check if we should continue iterating
+          agent.currentIteration++;
+          const shouldContinue = await this.shouldContinueIterating(id);
+          
+          if (shouldContinue) {
+            console.log(`[CopilotAgent] Continuing to next iteration #${agent.currentIteration}...`);
+            this.addLog(id, 'system', ``);
+            this.addLog(id, 'system', `🔄 Starting iteration #${agent.currentIteration}...`);
+            this.addLog(id, 'system', ``);
+            
+            // Re-invoke the same command for next iteration
+            await this.continueAgent(id);
+          } else {
+            console.log(`[CopilotAgent] ✓ Agent work complete or max iterations reached`);
+            this.addLog(id, 'system', `✓ Agent work complete`);
+            agent.status = 'stopped';
+            agent.stoppedAt = new Date().toISOString();
+            agent.process = null;
+            this.broadcast('copilot-agent:stopped', this.getAgentInfo(agent));
+          }
         } else if (signal) {
           console.log(`[CopilotAgent] Agent stopped by signal: ${signal}`);
           this.addLog(id, 'system', `⚠ Agent stopped by signal: ${signal}`);
+          agent.status = 'stopped';
+          agent.stoppedAt = new Date().toISOString();
+          agent.process = null;
+          this.broadcast('copilot-agent:stopped', this.getAgentInfo(agent));
         } else {
           console.error(`[CopilotAgent] ✗ Agent exited with error code: ${code}`);
           this.addLog(id, 'error', `✗ Agent exited with error code: ${code}`);
           this.addLog(id, 'error', `This usually means there was an error in the PowerShell script or Copilot CLI.`);
           agent.status = 'error';
+          agent.stoppedAt = new Date().toISOString();
+          agent.process = null;
+          this.broadcast('copilot-agent:stopped', this.getAgentInfo(agent));
         }
-
-        this.broadcast('copilot-agent:stopped', this.getAgentInfo(agent));
       });
 
       // Handle process errors
@@ -294,6 +317,189 @@ class CopilotAgentManager {
     }
 
     return this.getAgentInfo(agent);
+  }
+
+  /**
+   * Check if the agent should continue iterating
+   */
+  async shouldContinueIterating(id) {
+    const agent = this.agents.get(id);
+    if (!agent) return false;
+
+    // Check max iterations limit
+    if (agent.maxIterations > 0 && agent.currentIteration >= agent.maxIterations) {
+      console.log(`[CopilotAgent] Max iterations (${agent.maxIterations}) reached`);
+      this.addLog(id, 'system', `Max iterations (${agent.maxIterations}) reached`);
+      return false;
+    }
+
+    // Check ralph-progress.md for completion markers
+    try {
+      const progressPath = path.join(agent.workspaceDir, 'ralph-progress.md');
+      if (await fs.pathExists(progressPath)) {
+        const progressContent = await fs.readFile(progressPath, 'utf8');
+        
+        // Look for completion markers
+        const completionMarkers = [
+          /##\s*Status\s*[:\-]?\s*completed/i,
+          /##\s*Status\s*[:\-]?\s*done/i,
+          /all\s+tasks?\s+completed?/i,
+          /work\s+complete/i,
+          /project\s+complete/i
+        ];
+        
+        for (const marker of completionMarkers) {
+          if (marker.test(progressContent)) {
+            console.log(`[CopilotAgent] Completion marker found in ralph-progress.md`);
+            this.addLog(id, 'system', `Completion marker detected - task finished`);
+            return false;
+          }
+        }
+        
+        // Look for "Next Steps" section with tasks
+        const nextStepsMatch = progressContent.match(/##\s*Next\s*Steps?([\s\S]*?)(?=##|$)/i);
+        if (nextStepsMatch) {
+          const nextStepsContent = nextStepsMatch[1];
+          
+          // If Next Steps section is empty or only has "None" or "N/A", we're done
+          const trimmedSteps = nextStepsContent.trim();
+          if (!trimmedSteps || /^(none|n\/a|-)$/i.test(trimmedSteps)) {
+            console.log(`[CopilotAgent] No remaining steps found in ralph-progress.md`);
+            this.addLog(id, 'system', `No remaining steps - task finished`);
+            return false;
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`[CopilotAgent] Error checking progress file:`, error);
+      // If we can't read the progress file, continue iterating by default
+    }
+
+    // Default: continue iterating
+    return true;
+  }
+
+  /**
+   * Continue the agent for another iteration
+   */
+  async continueAgent(id) {
+    const agent = this.agents.get(id);
+    if (!agent) {
+      console.error(`[CopilotAgent] Cannot continue - agent ${id} not found`);
+      return;
+    }
+
+    const promptPath = path.join(agent.workspaceDir, 'PROMPT.md');
+    const psCommand = 'powershell.exe';
+    
+    const args = [
+      '-NoProfile',
+      '-ExecutionPolicy', 'Bypass',
+      '-File', this.ralphCopilotScript,
+      '-Command', 'run',
+      '-AgentName', 'ralph-wiggum',
+      '-Model', agent.model,
+      '-PromptFile', promptPath
+    ];
+
+    if (agent.maxIterations > 0) {
+      args.push('-MaxIterations', agent.maxIterations.toString());
+    }
+
+    console.log(`[CopilotAgent] Continuing iteration #${agent.currentIteration}`);
+    
+    try {
+      const process = spawn(psCommand, args, {
+        cwd: agent.workspaceDir,
+        windowsHide: true
+      });
+      
+      console.log(`[CopilotAgent] ✓ Process spawned with PID: ${process.pid}`);
+
+      agent.process = process;
+      agent.status = 'running';
+
+      // Handle stdout
+      process.stdout.on('data', (data) => {
+        const output = this.stripAnsiCodes(data.toString());
+        console.log(`[CopilotAgent] STDOUT: ${output.substring(0, 100)}...`);
+        this.addLog(id, 'stdout', output);
+      });
+
+      // Handle stderr
+      process.stderr.on('data', (data) => {
+        const output = this.stripAnsiCodes(data.toString());
+        console.error(`[CopilotAgent] STDERR: ${output}`);
+        this.addLog(id, 'stderr', output);
+      });
+
+      // Handle process exit (recursive call for next iteration)
+      process.on('exit', async (code, signal) => {
+        console.log(`[CopilotAgent] Process exited - Code: ${code}, Signal: ${signal}`);
+        
+        this.addLog(id, 'system', ``);
+        this.addLog(id, 'system', `─────────────────────────────────────────────────────────────`);
+        
+        if (code === 0) {
+          console.log(`[CopilotAgent] ✓ Iteration completed successfully`);
+          this.addLog(id, 'system', `✓ Iteration #${agent.currentIteration} completed successfully (exit code: ${code})`);
+          
+          // Check if we should continue iterating
+          agent.currentIteration++;
+          const shouldContinue = await this.shouldContinueIterating(id);
+          
+          if (shouldContinue) {
+            console.log(`[CopilotAgent] Continuing to next iteration #${agent.currentIteration}...`);
+            this.addLog(id, 'system', ``);
+            this.addLog(id, 'system', `🔄 Starting iteration #${agent.currentIteration}...`);
+            this.addLog(id, 'system', ``);
+            
+            // Re-invoke the same command for next iteration
+            await this.continueAgent(id);
+          } else {
+            console.log(`[CopilotAgent] ✓ Agent work complete or max iterations reached`);
+            this.addLog(id, 'system', `✓ Agent work complete`);
+            agent.status = 'stopped';
+            agent.stoppedAt = new Date().toISOString();
+            agent.process = null;
+            this.broadcast('copilot-agent:stopped', this.getAgentInfo(agent));
+          }
+        } else if (signal) {
+          console.log(`[CopilotAgent] Agent stopped by signal: ${signal}`);
+          this.addLog(id, 'system', `⚠ Agent stopped by signal: ${signal}`);
+          agent.status = 'stopped';
+          agent.stoppedAt = new Date().toISOString();
+          agent.process = null;
+          this.broadcast('copilot-agent:stopped', this.getAgentInfo(agent));
+        } else {
+          console.error(`[CopilotAgent] ✗ Agent exited with error code: ${code}`);
+          this.addLog(id, 'error', `✗ Agent exited with error code: ${code}`);
+          this.addLog(id, 'error', `This usually means there was an error in the PowerShell script or Copilot CLI.`);
+          agent.status = 'error';
+          agent.stoppedAt = new Date().toISOString();
+          agent.process = null;
+          this.broadcast('copilot-agent:stopped', this.getAgentInfo(agent));
+        }
+      });
+
+      // Handle process errors
+      process.on('error', (error) => {
+        console.error(`[CopilotAgent] Process error:`, error);
+        this.addLog(id, 'error', `Process error during continuation: ${error.message}`);
+        agent.status = 'error';
+        agent.process = null;
+        this.broadcast('copilot-agent:error', { id, error: error.message });
+      });
+
+      this.broadcast('copilot-agent:iteration', { id, iteration: agent.currentIteration });
+      
+    } catch (spawnError) {
+      console.error(`[CopilotAgent] Failed to continue agent:`, spawnError);
+      this.addLog(id, 'error', `Failed to continue: ${spawnError.message}`);
+      agent.status = 'error';
+      agent.process = null;
+      this.broadcast('copilot-agent:error', { id, error: spawnError.message });
+    }
   }
 
   async deleteAgent(id) {
