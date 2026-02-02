@@ -82,6 +82,36 @@ class CopilotAgentManager {
     const defaultPrompt = promptContent || `# Copilot Agent: ${name}\n\n## Task Description\n\nDescribe your task here using the Ralph Wiggum agent...\n`;
     await fs.writeFile(promptPath, defaultPrompt);
     console.log(`[CopilotAgentManager]   ✓ PROMPT.md created`);
+    
+    // Create initial ralph-progress.md
+    const progressPath = path.join(workspaceDir, 'ralph-progress.md');
+    const progressContent = `# ralph-progress.md
+
+Agent: ralph-wiggum
+Assigned directory: ${workspaceDir}
+
+## Overview
+This document tracks progress and next steps for the task.
+
+## Completed
+- [ ] Initial setup
+
+## In-Progress
+- [ ] Task from PROMPT.md
+
+## Next Steps
+1. Read PROMPT.md
+2. Plan and execute the task
+
+## Notes
+- All work must be done in this directory: ${workspaceDir}
+- Do not create files outside of this workspace
+
+## History
+- ${new Date().toISOString()}: Agent workspace created
+`;
+    await fs.writeFile(progressPath, progressContent);
+    console.log(`[CopilotAgentManager]   ✓ ralph-progress.md created`);
 
     const agent = {
       id,
@@ -146,7 +176,8 @@ class CopilotAgentManager {
       '-Command', 'run',
       '-AgentName', 'ralph-wiggum',
       '-Model', agent.model,
-      '-PromptFile', promptPath
+      '-PromptFile', promptPath,
+      '-WorkingDirectory', agent.workspaceDir
     ];
 
     if (agent.maxIterations > 0) {

@@ -11,6 +11,7 @@ param(
     [string]$Description = '',
     [string]$Model = 'gpt-5-mini',
     [string]$PromptFile = '',
+    [string]$WorkingDirectory = '',
     [string[]]$Tools = @('read', 'edit', 'search', 'run_terminal'),
     [string]$TargetEnvironment = '', # 'vscode', 'github-copilot', or empty for both
     [switch]$OrganizationLevel
@@ -68,6 +69,7 @@ CREATE OPTIONS:
     -Description <text>         Agent description
     -Model <model>              AI model to use (default: gpt-5-mini)
     -PromptFile <path>          Path to custom prompt template
+    -WorkingDirectory <path>    Working directory for the agent task
     -Tools <tools>              Comma-separated list of tools
     -TargetEnvironment <env>    'vscode', 'github-copilot', or empty for both
     -OrganizationLevel          Create org-level agent (in .github-private)
@@ -93,6 +95,9 @@ EXAMPLES:
 
     # Run an agent with Copilot CLI
     .\ralph-copilot.ps1 -Command run -AgentName "code-reviewer" -PromptFile "PROMPT.md"
+
+    # Run an agent in a specific working directory
+    .\ralph-copilot.ps1 -Command run -AgentName "ralph-wiggum" -PromptFile "PROMPT.md" -WorkingDirectory "C:\projects\myapp"
 
 "@
     Write-Host $helpText -ForegroundColor $script:Colors.Info
@@ -256,7 +261,8 @@ function Remove-RalphAgent {
 function Invoke-RalphCopilotCLI {
     param(
         [string]$AgentName,
-        [string]$Prompt
+        [string]$Prompt,
+        [string]$WorkingDir = ''
     )
     
     # Check if copilot CLI is available
@@ -266,6 +272,13 @@ function Invoke-RalphCopilotCLI {
     }
     
     Write-Host "🚀 Launching Ralph agent '$AgentName' with Copilot CLI..." -ForegroundColor $script:Colors.Success
+    
+    # Change to working directory if specified
+    $originalLocation = Get-Location
+    if ($WorkingDir -and (Test-Path $WorkingDir)) {
+        Write-Host "   Working Directory: $WorkingDir" -ForegroundColor $script:Colors.Info
+        Set-Location $WorkingDir
+    }
     
     # Build command with safety flags
     $command = "copilot --allow-all-tools --allow-all-paths --agent=$AgentName"
@@ -282,8 +295,14 @@ function Invoke-RalphCopilotCLI {
     Write-Host "   Command: $command" -ForegroundColor $script:Colors.Info
     Write-Host ""
     
-    # Execute
-    Invoke-Expression $command
+    try {
+        # Execute
+        Invoke-Expression $command
+    }
+    finally {
+        # Restore original location
+        Set-Location $originalLocation
+    }
 }
 
 # Main execution
@@ -369,14 +388,21 @@ switch ($Command.ToLower()) {
         }
         
         # Build prompt from PromptFile if provided
-        $prompt = if ($PromptFile -and (Test-Path $PromptFile)) {
+        $basePrompt = if ($PromptFile -and (Test-Path $PromptFile)) {
             "Read $PromptFile and start working on the task"
         } else {
             "Read PROMPT.md and start working on the task"
         }
         
+        # Add working directory instruction if specified
+        $prompt = if ($WorkingDirectory) {
+            "Your working directory is: $WorkingDirectory`n`nIMPORTANT: All file operations (create, read, edit) must be done in this directory or its subdirectories. Do not create files in any other location.`n`n$basePrompt"
+        } else {
+            $basePrompt
+        }
+        
         try {
-            Invoke-RalphCopilotCLI -AgentName $AgentName -Prompt $prompt
+            Invoke-RalphCopilotCLI -AgentName $AgentName -Prompt $prompt -WorkingDir $WorkingDirectory
         }
         catch {
             Write-Host "❌ Error: $_" -ForegroundColor $script:Colors.Error
