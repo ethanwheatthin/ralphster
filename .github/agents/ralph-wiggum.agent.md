@@ -3,9 +3,7 @@ name: ralph-wiggum
 description: Continuous AI coding agent that iteratively works on tasks with persistent context, inspired by Ralph Wiggum's determination
 model: gpt-5-mini
 tools:
-  - read
-  - edit
-  - search
+  ['execute', 'read', 'edit', 'search', 'web', 'agent', 'pylance-mcp-server/*', 'ms-azuretools.vscode-containers/containerToolsConfig', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-toolsai.jupyter/configureNotebook', 'ms-toolsai.jupyter/listNotebookPackages', 'ms-toolsai.jupyter/installNotebookPackages', 'todo']
 ---
 
 # Ralph Wiggum - Continuous Coding Agent
