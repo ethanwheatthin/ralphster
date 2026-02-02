@@ -1,0 +1,12 @@
+{
+  "watch": [
+    "backend"
+  ],
+  "ignore": [
+    "backend/agents/**",
+    "backend/copilot-agents/**",
+    "frontend/**",
+    "node_modules/**"
+  ],
+  "delay": "250"
+}

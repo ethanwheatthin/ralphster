@@ -6,10 +6,14 @@ import CreateAgentModal from './components/CreateAgentModal';
 import EditAgentModal from './components/EditAgentModal';
 import LogViewer from './components/LogViewer';
 import ModelManager from './components/ModelManager';
+import CopilotAgentManager from './components/CopilotAgentManager';
 import { Plus, RefreshCw } from 'lucide-react';
 import './App.css';
 
+type Tab = 'ollama' | 'copilot';
+
 function App() {
+  const [activeTab, setActiveTab] = useState<Tab>('ollama');
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -184,62 +188,89 @@ function App() {
           <h1>🍩 Ralph Agent Manager</h1>
           <p className="subtitle">Manage multiple autonomous AI coding agents</p>
         </div>
-        <div className="header-stats">
-          <div className="stat">
-            <span className="stat-value">{agents.length}</span>
-            <span className="stat-label">Total</span>
-          </div>
-          <div className="stat running">
-            <span className="stat-value">{runningCount}</span>
-            <span className="stat-label">Running</span>
-          </div>
-          <div className="stat stopped">
-            <span className="stat-value">{stoppedCount}</span>
-            <span className="stat-label">Stopped</span>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button className="btn-refresh" onClick={loadAgents} title="Refresh">
-            <RefreshCw size={18} />
+        <div className="header-tabs">
+          <button
+            className={`tab ${activeTab === 'ollama' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ollama')}
+          >
+            🦙 Ollama Agents
+            {activeTab === 'ollama' && (
+              <span className="tab-badge">{agents.length}</span>
+            )}
           </button>
-          <button className="btn-models" onClick={() => setShowModelManager(true)}>
-            🤖 Models
-          </button>
-          <button className="btn-create" onClick={() => setShowCreateModal(true)}>
-            <Plus size={20} />
-            New Agent
+          <button
+            className={`tab ${activeTab === 'copilot' ? 'active' : ''}`}
+            onClick={() => setActiveTab('copilot')}
+          >
+            🤖 Copilot CLI Agents
           </button>
         </div>
+        {activeTab === 'ollama' && (
+          <>
+            <div className="header-stats">
+              <div className="stat">
+                <span className="stat-value">{agents.length}</span>
+                <span className="stat-label">Total</span>
+              </div>
+              <div className="stat running">
+                <span className="stat-value">{runningCount}</span>
+                <span className="stat-label">Running</span>
+              </div>
+              <div className="stat stopped">
+                <span className="stat-value">{stoppedCount}</span>
+                <span className="stat-label">Stopped</span>
+              </div>
+            </div>
+            <div className="header-actions">
+              <button className="btn-refresh" onClick={loadAgents} title="Refresh">
+                <RefreshCw size={18} />
+              </button>
+              <button className="btn-models" onClick={() => setShowModelManager(true)}>
+                🤖 Models
+              </button>
+              <button className="btn-create" onClick={() => setShowCreateModal(true)}>
+                <Plus size={20} />
+                New Agent
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       <main className="app-main">
-        {loading ? (
-          <div className="loading">Loading agents...</div>
-        ) : agents.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🍩</div>
-            <h2>No agents yet</h2>
-            <p>Create your first Ralph agent to get started!</p>
-            <button className="btn-create-large" onClick={() => setShowCreateModal(true)}>
-              <Plus size={24} />
-              Create Your First Agent
-            </button>
-          </div>
+        {activeTab === 'ollama' ? (
+          <>
+            {loading ? (
+              <div className="loading">Loading agents...</div>
+            ) : agents.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🍩</div>
+                <h2>No agents yet</h2>
+                <p>Create your first Ralph agent to get started!</p>
+                <button className="btn-create-large" onClick={() => setShowCreateModal(true)}>
+                  <Plus size={24} />
+                  Create Your First Agent
+                </button>
+              </div>
+            ) : (
+              <div className="agents-grid">
+                {agents.map(agent => (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    onStart={() => handleStartAgent(agent.id)}
+                    onStop={() => handleStopAgent(agent.id)}
+                    onDelete={() => handleDeleteAgent(agent.id)}
+                    onViewLogs={() => handleViewLogs(agent)}
+                    onEdit={() => handleEditAgent(agent)}
+                    onOpenDirectory={() => handleOpenDirectory(agent.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="agents-grid">
-            {agents.map(agent => (
-              <AgentCard
-                key={agent.id}
-                agent={agent}
-                onStart={() => handleStartAgent(agent.id)}
-                onStop={() => handleStopAgent(agent.id)}
-                onDelete={() => handleDeleteAgent(agent.id)}
-                onViewLogs={() => handleViewLogs(agent)}
-                onEdit={() => handleEditAgent(agent)}
-                onOpenDirectory={() => handleOpenDirectory(agent.id)}
-              />
-            ))}
-          </div>
+          <CopilotAgentManager />
         )}
       </main>
 

@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const RalphManager = require('./ralph-manager');
 const OllamaService = require('./ollama-service');
+const CopilotAgentManager = require('./copilot-agent-manager');
 
 const app = express();
 const server = http.createServer(app);
@@ -26,8 +27,12 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/build')));
 }
 
-// Initialize Ralph Manager
+// Initialize Ralph Manager and Copilot Agent Manager
+console.log('[Server] Initializing managers...');
 const ralphManager = new RalphManager(io);
+console.log('[Server] ✓ Ralph Manager initialized');
+const copilotAgentManager = new CopilotAgentManager(io);
+console.log('[Server] ✓ Copilot Agent Manager initialized');
 
 // REST API Endpoints
 
@@ -168,6 +173,139 @@ app.get('/api/ollama/status', async (req, res) => {
 app.post('/api/agents/:id/open-directory', (req, res) => {
   try {
     const agent = ralphManager.getAgent(req.params.id);
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+    
+    const { exec } = require('child_process');
+    const workspaceDir = agent.workspaceDir;
+    
+    // Open in Windows Explorer
+    exec(`explorer "${workspaceDir}"`, (error) => {
+      if (error) {
+        console.error('Error opening directory:', error);
+        return res.status(500).json({ error: 'Failed to open directory' });
+      }
+      res.json({ success: true });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ COPILOT CLI AGENT ENDPOINTS ============
+
+// Get all Copilot agents
+app.get('/api/copilot-agents', (req, res) => {
+  const agents = copilotAgentManager.getAllAgents();
+  res.json(agents);
+});
+
+// Create new Copilot agent
+app.post('/api/copilot-agents', async (req, res) => {
+  try {
+    const { name, model, promptContent, maxIterations } = req.body;
+    const agent = await copilotAgentManager.createAgent(name, model, promptContent, maxIterations);
+    res.status(201).json(agent);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get specific Copilot agent
+app.get('/api/copilot-agents/:id', (req, res) => {
+  const agent = copilotAgentManager.getAgent(req.params.id);
+  if (!agent) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+  res.json(agent);
+});
+
+// Get Copilot agent prompt
+app.get('/api/copilot-agents/:id/prompt', async (req, res) => {
+  try {
+    const prompt = await copilotAgentManager.getPrompt(req.params.id);
+    res.json({ prompt });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Copilot agent prompt
+app.put('/api/copilot-agents/:id/prompt', async (req, res) => {
+  try {
+    const { promptContent } = req.body;
+    await copilotAgentManager.updatePrompt(req.params.id, promptContent);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Copilot agent
+app.delete('/api/copilot-agents/:id', async (req, res) => {
+  try {
+    await copilotAgentManager.deleteAgent(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Start Copilot agent
+app.post('/api/copilot-agents/:id/start', async (req, res) => {
+  try {
+    await copilotAgentManager.startAgent(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Stop Copilot agent
+app.post('/api/copilot-agents/:id/stop', async (req, res) => {
+  try {
+    await copilotAgentManager.stopAgent(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Check Copilot CLI status
+app.get('/api/copilot/status', async (req, res) => {
+  try {
+    const installed = await copilotAgentManager.checkCopilotCLI();
+    res.json({ installed });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available Copilot models
+app.get('/api/copilot/models', (req, res) => {
+  try {
+    const models = copilotAgentManager.getAvailableModels();
+    res.json({ models });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Copilot agent logs
+app.get('/api/copilot-agents/:id/logs', (req, res) => {
+  try {
+    const logs = copilotAgentManager.getLogs(req.params.id);
+    res.json({ logs });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Open Copilot agent directory in file explorer
+app.post('/api/copilot-agents/:id/open-directory', (req, res) => {
+  try {
+    const agent = copilotAgentManager.getAgent(req.params.id);
     if (!agent) {
       return res.status(404).json({ error: 'Agent not found' });
     }

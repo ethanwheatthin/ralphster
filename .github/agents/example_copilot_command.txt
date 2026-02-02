@@ -1,0 +1,1 @@
+copilot --allow-all-tools --allow-all-paths --agent=ralph-wiggum --prompt .\PROMPT.md 

@@ -11,6 +11,20 @@ export interface Agent {
   workspaceDir: string;
 }
 
+export interface CopilotAgent {
+  id: string;
+  name: string;
+  model: string;
+  promptContent: string;
+  maxIterations: number;
+  status: 'running' | 'stopped' | 'stopping' | 'error';
+  currentIteration: number;
+  createdAt: string;
+  startedAt?: string;
+  stoppedAt?: string;
+  workspaceDir: string;
+}
+
 export interface LogEntry {
   timestamp: string;
   type: 'stdout' | 'stderr' | 'system' | 'error';
@@ -18,6 +32,13 @@ export interface LogEntry {
 }
 
 export interface CreateAgentRequest {
+  name: string;
+  model: string;
+  promptContent: string;
+  maxIterations: number;
+}
+
+export interface CreateCopilotAgentRequest {
   name: string;
   model: string;
   promptContent: string;

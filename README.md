@@ -140,6 +140,41 @@ Build a REST API for a todo application
 3. **Update the prompt** - As Ralph makes progress, update the current state
 4. **Tune constantly** - When Ralph does something wrong, add a sign
 
+## 🆕 Using Ralph with GitHub Copilot CLI
+
+Ralph is now available as a custom agent for GitHub Copilot CLI, using the GPT-5-mini model!
+
+### Quick Start with Copilot CLI
+
+```bash
+# Start Copilot CLI
+copilot
+
+# Use Ralph with a slash command
+/agent
+# Then select "ralph-wiggum"
+
+# Or specify Ralph directly
+copilot --agent=ralph-wiggum --prompt "Read PROMPT.md and start working"
+```
+
+### Why Use Copilot CLI?
+
+- 🌩️ **Cloud-powered**: Uses GPT-5-mini instead of local models
+- 🧠 **Better context**: Advanced context management
+- 🤝 **Team features**: Delegate to coding agent, share sessions
+- 📦 **MCP support**: Extend with Model Context Protocol servers
+
+### Three Ways to Run Ralph
+
+| Method | Best For | Model |
+|--------|----------|-------|
+| `ralph.ps1` | Local, offline work | Ollama (qwen3-coder, etc.) |
+| `ralph-agent.ps1` | Quick iterations | Ollama |
+| Copilot CLI | Advanced features, cloud AI | GPT-5-mini |
+
+For detailed instructions, see [COPILOT-CLI-GUIDE.md](COPILOT-CLI-GUIDE.md)
+
 ## Philosophy
 
 > "That's the beauty of Ralph - the technique is deterministically bad in an undeterministic world."
@@ -184,9 +219,12 @@ ollama create qwen3-coder-64k -f Modelfile
 
 | File | Description |
 |------|-------------|
-| `ralph.ps1` | Main PowerShell script |
+| `ralph.ps1` | Main PowerShell script (Ollama) |
+| `ralph-agent.ps1` | Simplified launcher for web app |
 | `ralph.bat` | Windows batch launcher |
 | `PROMPT.md` | Your task prompt (edit this!) |
+| `.github/agents/ralph-wiggum.agent.md` | Copilot CLI agent profile |
+| `COPILOT-CLI-GUIDE.md` | Guide for using Ralph with Copilot CLI |
 | `README.md` | This documentation |
 
 ## Credits
