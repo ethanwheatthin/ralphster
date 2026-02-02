@@ -4,6 +4,7 @@ import ApiService from './services/api';
 import AgentCard from './components/AgentCard';
 import CreateAgentModal from './components/CreateAgentModal';
 import LogViewer from './components/LogViewer';
+import ModelManager from './components/ModelManager';
 import { Plus, RefreshCw } from 'lucide-react';
 import './App.css';
 
@@ -11,6 +12,7 @@ function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModelManager, setShowModelManager] = useState(false);
   const [selectedAgentLogs, setSelectedAgentLogs] = useState<{ agent: Agent; logs: LogEntry[] } | null>(null);
 
   useEffect(() => {
@@ -180,6 +182,9 @@ function App() {
           <button className="btn-refresh" onClick={loadAgents} title="Refresh">
             <RefreshCw size={18} />
           </button>
+          <button className="btn-models" onClick={() => setShowModelManager(true)}>
+            🤖 Models
+          </button>
           <button className="btn-create" onClick={() => setShowCreateModal(true)}>
             <Plus size={20} />
             New Agent
@@ -221,6 +226,12 @@ function App() {
         <CreateAgentModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateAgent}
+        />
+      )}
+
+      {showModelManager && (
+        <ModelManager
+          onClose={() => setShowModelManager(false)}
         />
       )}
 

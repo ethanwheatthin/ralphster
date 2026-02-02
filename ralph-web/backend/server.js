@@ -4,6 +4,7 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const RalphManager = require('./ralph-manager');
+const OllamaService = require('./ollama-service');
 
 const app = express();
 const server = http.createServer(app);
@@ -114,6 +115,52 @@ app.get('/api/agents/:id/logs', (req, res) => {
     res.json({ logs });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Ollama model management endpoints
+
+// Get running models
+app.get('/api/ollama/running', async (req, res) => {
+  try {
+    const models = await OllamaService.getRunningModels();
+    res.json({ models });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all available models
+app.get('/api/ollama/models', async (req, res) => {
+  try {
+    const models = await OllamaService.getAvailableModels();
+    res.json({ models });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Unload a model
+app.post('/api/ollama/unload/:modelName', async (req, res) => {
+  try {
+    const success = await OllamaService.unloadModel(req.params.modelName);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ error: 'Failed to unload model' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check Ollama status
+app.get('/api/ollama/status', async (req, res) => {
+  try {
+    const running = await OllamaService.isRunning();
+    res.json({ running });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

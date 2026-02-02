@@ -86,6 +86,24 @@
   transform: rotate(180deg);
 }
 
+.btn-models {
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-models:hover {
+  background: #7c3aed;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
 .btn-create {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;

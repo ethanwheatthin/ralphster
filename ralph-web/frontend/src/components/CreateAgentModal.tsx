@@ -46,17 +46,17 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
 
           <div className="form-group">
             <label htmlFor="model">Ollama Model *</label>
-            <select
+            <input
               id="model"
+              type="text"
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-            >
-              <option value="qwen3-coder">qwen3-coder (Recommended)</option>
-              <option value="glm-4.7">glm-4.7</option>
-              <option value="gpt-oss:20b">gpt-oss:20b</option>
-              <option value="gpt-oss:120b">gpt-oss:120b</option>
-              <option value="deepseek-coder">deepseek-coder</option>
-            </select>
+              placeholder="e.g., qwen3-coder, glm-4.7, gpt-oss:20b"
+              required
+            />
+            <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+              Popular models: qwen3-coder, glm-4.7, gpt-oss:20b, deepseek-coder
+            </small>
           </div>
 
           <div className="form-group">

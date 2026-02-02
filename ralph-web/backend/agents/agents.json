@@ -6,5 +6,13 @@
     "maxIterations": 3,
     "createdAt": "2026-02-02T02:17:31.949Z",
     "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\ac531a2e-0138-4cfb-9b42-6412e32685df"
+  },
+  {
+    "id": "ec063f48-556c-48a3-a299-3475d406bf2d",
+    "name": "print agent",
+    "model": "qwen3:4b",
+    "maxIterations": 3,
+    "createdAt": "2026-02-02T02:31:55.709Z",
+    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\ec063f48-556c-48a3-a299-3475d406bf2d"
   }
 ]

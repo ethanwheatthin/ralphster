@@ -8,7 +8,8 @@ class RalphManager {
     this.io = io;
     this.agents = new Map();
     this.agentsDir = path.join(__dirname, 'agents');
-    this.ralphScriptPath = path.join(__dirname, '../../ralph.ps1');
+    // Use the simpler ralph-agent.ps1 script for web application
+    this.ralphScriptPath = path.join(__dirname, '../../ralph-agent.ps1');
     
     // Ensure agents directory exists
     fs.ensureDirSync(this.agentsDir);
@@ -90,6 +91,11 @@ class RalphManager {
 
     const promptPath = path.join(agent.workspaceDir, 'PROMPT.md');
     
+    // Check if ralph.ps1 exists
+    if (!await fs.pathExists(this.ralphScriptPath)) {
+      throw new Error(`Ralph script not found at: ${this.ralphScriptPath}`);
+    }
+    
     // Check if PowerShell is available
     const psCommand = 'powershell.exe';
     
@@ -106,6 +112,11 @@ class RalphManager {
       args.push('-MaxIterations', agent.maxIterations.toString());
     }
 
+    // Log the command being run
+    const commandStr = `${psCommand} ${args.join(' ')}`;
+    this.addLog(id, 'system', `Starting agent with command: ${commandStr}`);
+    this.addLog(id, 'system', `Working directory: ${agent.workspaceDir}`);
+
     // Spawn PowerShell process
     const process = spawn(psCommand, args, {
       cwd: agent.workspaceDir,
@@ -119,7 +130,7 @@ class RalphManager {
 
     // Handle stdout
     process.stdout.on('data', (data) => {
-      const output = data.toString();
+      const output = this.stripAnsiCodes(data.toString());
       this.addLog(id, 'stdout', output);
       
       // Parse iteration count if present
@@ -132,7 +143,7 @@ class RalphManager {
 
     // Handle stderr
     process.stderr.on('data', (data) => {
-      const output = data.toString();
+      const output = this.stripAnsiCodes(data.toString());
       this.addLog(id, 'stderr', output);
     });
 
@@ -264,6 +275,14 @@ class RalphManager {
     if (!agent) throw new Error('Agent not found');
     
     return agent.logs ? agent.logs.slice(-limit) : [];
+  }
+
+  stripAnsiCodes(str) {
+    // Remove ANSI escape codes (color codes, cursor movements, etc.)
+    // eslint-disable-next-line no-control-regex
+    return str.replace(/\u001b\[[0-9;]*m/g, '')
+              .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+              .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '');
   }
 
   broadcast(event, data) {
