@@ -60,6 +60,12 @@ const CopilotAgentManager: React.FC = () => {
       ));
     });
 
+    socket.on('copilot-agent:completed', ({ id, iterations }: { id: string; iterations: number }) => {
+      setAgents(prev => prev.map(a => 
+        a.id === id ? { ...a, status: 'stopped' as const, completed: true, totalIterations: iterations } : a
+      ));
+    });
+
     socket.on('copilot-agent:deleted', ({ id }: { id: string }) => {
       setAgents(prev => prev.filter(a => a.id !== id));
     });
@@ -312,16 +318,25 @@ const AgentCard: React.FC<AgentCardProps> = ({
           <span className="value model">{agent.model}</span>
         </div>
         <div className="detail-row">
-          <span className="label">Agent:</span>
-          <span className="value">ralph-wiggum (Copilot CLI)</span>
+          <span className="label">Strategy:</span>
+          <span className="value">Loop-based (PRD + Progress)</span>
         </div>
         <div className="detail-row">
           <span className="label">Iteration:</span>
           <span className="value">
             {agent.currentIteration}
             {agent.maxIterations > 0 && ` / ${agent.maxIterations}`}
+            {agent.completed && ' ✅'}
           </span>
         </div>
+        {agent.completed && (
+          <div className="detail-row completion-badge">
+            <span className="label">Status:</span>
+            <span className="value" style={{ color: '#10b981', fontWeight: 'bold' }}>
+              🎉 COMPLETE ({agent.totalIterations} iterations)
+            </span>
+          </div>
+        )}
         <div className="detail-row">
           <span className="label">Created:</span>
           <span className="value">{new Date(agent.createdAt).toLocaleString()}</span>

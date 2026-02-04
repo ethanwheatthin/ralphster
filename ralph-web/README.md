@@ -1,6 +1,6 @@
 # 🍩 Ralph Agent Manager
 
-A full-featured web application for managing multiple Ralph AI coding agents with real-time monitoring and control.
+A full-featured web application for managing multiple Ralph AI coding agents with **loop-based iteration architecture**, real-time monitoring, and autonomous completion detection.
 
 ![Ralph Agent Manager](https://img.shields.io/badge/status-ready-brightgreen)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-green)
@@ -9,11 +9,44 @@ A full-featured web application for managing multiple Ralph AI coding agents wit
 ## Features
 
 ✨ **Multi-Agent Management**: Create and run multiple Ralph agents simultaneously  
-📊 **Real-time Dashboard**: Monitor all agents with live status updates  
+🔄 **Loop-Based Architecture**: Auto-generates PRD.json and progress tracking for iterative workflows  
+🎯 **Autonomous Completion**: Agents signal completion with `<promise>COMPLETE</promise>` marker  
+📊 **Real-time Dashboard**: Monitor all agents with live status updates and iteration counts  
 📝 **Live Log Streaming**: Watch agent output in real-time via WebSockets  
 🎮 **Full Control**: Start, stop, edit, and delete agents from the UI  
-💾 **Persistent Workspaces**: Each agent has its own isolated workspace  
+💾 **Persistent Workspaces**: Each agent has its own isolated workspace with structured PRD  
 🎨 **Modern UI**: Beautiful React interface with TypeScript  
+
+## 🆕 Loop Architecture
+
+Ralph Web now uses an **agentic loop pattern** where each agent:
+
+1. **Auto-generates** a structured PRD (Product Requirements Document) from your task
+2. **Iterates** up to N times, working on one feature at a time
+3. **Tracks progress** in `progress.txt` after each iteration
+4. **Self-completes** by outputting `<promise>COMPLETE</promise>` when done
+
+**📖 See [LOOP-ARCHITECTURE.md](LOOP-ARCHITECTURE.md) for detailed documentation**
+
+### Quick Example
+
+```
+User Task: "Build a todo app"
+   ↓
+System Generates:
+   - PROMPT.md (your task)
+   - plans/prd.json (structured features F001-F005)
+   - progress.txt (iteration log)
+   ↓
+Loop Starts (max 20 iterations):
+   Iteration 1: Implement F001 (project setup)
+   Iteration 2: Implement F002 (UI components)
+   ...
+   Iteration 8: All features complete
+   → Outputs: <promise>COMPLETE</promise>
+   ↓
+Loop exits, agent shows ✅ COMPLETE
+```  
 
 ## Architecture
 

@@ -185,7 +185,10 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-content">
-          <h1>🍩 Ralph Agent Manager</h1>
+          <h1>
+            <img src="/icons/icons8-ralph-48.png" alt="Ralph" style={{ verticalAlign: 'middle', marginRight: 8 }} />
+            Ralph Agent Manager
+          </h1>
           <p className="subtitle">Manage multiple autonomous AI coding agents</p>
         </div>
         <div className="header-tabs">
@@ -244,7 +247,7 @@ function App() {
               <div className="loading">Loading agents...</div>
             ) : agents.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">🍩</div>
+                <div className="empty-icon"><img src="/icons/icons8-ralph-48.png" alt="Ralph" style={{ width: 48, height: 48 }} /></div>
                 <h2>No agents yet</h2>
                 <p>Create your first Ralph agent to get started!</p>
                 <button className="btn-create-large" onClick={() => setShowCreateModal(true)}>

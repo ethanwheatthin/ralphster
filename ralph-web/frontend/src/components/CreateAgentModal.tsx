@@ -46,7 +46,10 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>🍩 Create New Ralph Agent</h2>
+          <h2>
+            <img src="/icons/icons8-ralph-48.png" alt="Ralph" style={{ width: 24, height: 24, verticalAlign: 'middle', marginRight: 8 }} />
+            Create New Ralph Agent
+          </h2>
           <button className="close-btn" onClick={onClose}>
             <X size={24} />
           </button>
@@ -119,7 +122,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
           </div>
 
           <div className="form-group">
-            <label htmlFor="promptContent">Initial Prompt (PROMPT.md) *</label>
+            <label htmlFor="promptContent">Task Description (PROMPT.md) *</label>
             <textarea
               id="promptContent"
               value={formData.promptContent}
@@ -128,6 +131,10 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
               placeholder="Describe what you want Ralph to build..."
               required
             />
+            <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+              💡 A structured PRD (plans/prd.json) and progress.txt will be auto-generated from this prompt.
+              Ralph will work iteratively using these files as source of truth.
+            </small>
           </div>
 
           <div className="form-actions">

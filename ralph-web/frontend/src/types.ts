@@ -23,6 +23,8 @@ export interface CopilotAgent {
   startedAt?: string;
   stoppedAt?: string;
   workspaceDir: string;
+  completed?: boolean;
+  totalIterations?: number;
 }
 
 export interface LogEntry {

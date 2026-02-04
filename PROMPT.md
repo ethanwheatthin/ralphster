@@ -1,85 +1,106 @@
-# Trello-Style Kanban — Production-Ready Prompt
+# Trello-Style Kanban — Visually Polished, Production-Ready Prompt
 
 ## Overview
-Build a lightweight, production-feeling Trello-style kanban SPA with a clean, responsive UI and polished interactions. Focus on robust UX, accessibility, maintainable architecture, and a small, dependency-free codebase.
+Build a lightweight, production-feeling Trello-style kanban SPA with an emphasis on polished visuals, consistent spacing, and a modern, flexible layout using CSS Flexbox. Prioritize a beautiful, clear UI with strong typography, spacing systems, and delightful micro-interactions while keeping the codebase small and dependency-free.
 
-## Core Requirements
-- Boards containing multiple lists (columns) with clear visual hierarchy
-- Create, edit, and delete lists
-- Create, edit, delete, and reorder cards within lists
-- Drag-and-drop to move cards between lists and reorder within a list (HTML5 DnD or small vanilla helper)
-- Card details editor (modal or inline) supporting title, description, labels/tags
-- Persistent storage using `localStorage` with a clear versioned schema for future upgrades
-- Polished UI: micro-interactions, motion, and clear affordances
-- Fully responsive layout for desktop and mobile
+## Visual Design Goals (Primary)
+- Create a cohesive design system driven by CSS variables for colors, spacing, radii, shadows, and type scales.
+- Use a clear spacing scale and flexbox-first layout patterns so components feel consistently spaced and responsive.
+- Prioritize readable typography, strong contrast (WCAG AA), and a clean visual hierarchy.
+- Provide subtle motion and micro-interactions to improve perceived quality (transitions on hover, lift on drag, focus rings).
 
-## Production Styling Guidance
-- Design system: define theme tokens (colors, spacing, radii, shadows, font-sizes) in a single `:root` CSS block so visual changes are centralized.
-- CSS architecture: use a lightweight, semantic class strategy (BEM-like or utility-prefixed) and keep stateful modifiers (e.g., `is-dragging`, `is-drop-target`) separate from layout classes.
-- Typography: use a system of scales (base, small, large) and a single readable font-stack; prioritize legibility and contrast (WCAG AA+) for text and controls.
-- Motion: prefer CSS transitions for hover/focus and transform-based animations for drags; avoid forcing reflow during drag operations.
-- Elevation: subtle, layered shadows for lists and cards to create depth; animate shadows on lift.
-- Color & themes: supply a neutral light theme by default and structure variables for an optional dark theme toggle.
+## Core Requirements (UI-focused)
+- Boards containing multiple lists (columns) with clear visual hierarchy and consistent gutters and column spacing.
+- Create, edit, and delete lists with smooth transitions and focus management.
+- Create, edit, delete, and reorder cards within lists using accessible controls and drag-and-drop.
+- Drag-and-drop should use HTML5 DnD or a small vanilla helper; visually lift cards with shadow and transform while dragging.
+- Card details editor (modal or inline) supporting title, description, labels/tags with a polished form layout.
+- Persistent storage using `localStorage` with a clear versioned schema and safe debounced writes (e.g., 300ms).
 
-## UX & Accessibility
-- Keyboard support: all interactive elements must be reachable via `Tab`. Provide keyboard controls for moving focus and moving cards between lists (e.g., focus a card, press a shortcut or use move buttons).
-- ARIA: use appropriate roles (list, listitem, button), aria-grabbed during DnD, and announce major state changes via a live region for screen readers.
-- Focus management: when opening modals or editors, trap focus and return it when closed.
-- Reduced-motion: respect `prefers-reduced-motion`.
-- Progressive enhancement: core actions (add/edit/delete) should work with basic JS; ensure graceful failure or instructions if JS unavailable.
+## Spacing & Layout Rules (explicit)
+- Define a spacing scale in `:root`: `--space-xxs:4px; --space-xs:8px; --space-sm:12px; --space-md:16px; --space-lg:24px; --space-xl:32px;`.
+- Use `gap` on flex containers instead of margin hacks. Prefer `display:flex` with `gap: var(--space-md)` for lists and `gap: var(--space-sm)` for cards.
+- Consistent container padding: `padding: var(--space-lg)` for main containers; inner cards use `padding: var(--space-md)`.
+- Use utility helpers (small set) for spacing if needed: `.mt-`, `.mb-`, `.px-`, but keep them minimal.
 
-## Data & Persistence
-- State schema (example):
+## Flexbox Patterns (recommended)
+- Board layout: `.board { display:flex; gap:var(--space-lg); align-items:flex-start; overflow:auto; }`
+- List column: `.list { display:flex; flex-direction:column; gap:var(--space-sm); min-width:280px; max-width:420px; }`
+- Cards container: `.cards { display:flex; flex-direction:column; gap:var(--space-xs); }`
+- Card: `.card { display:flex; flex-direction:column; }` — keep card content vertically stacked and let actions align right with a separate row.
 
-	{
-		"boards": [{
-			"id": "board_1",
-			"title": "My Board",
-			"lists": [{
-				"id": "list_1",
-				"title": "Todo",
-				"cards": [{ "id": "card_1", "title": "Task", "description": "...", "labels": [] }]
-			}]
-		}],
-		"meta": { "version": 1 }
-	}
+## Styling & Polishing
+- Design tokens in `:root` for colors, focus ring, radii and shadow levels (`--shadow-1`, `--shadow-2`).
+- Use subtle shadows and transform for lift: `transform: translateY(-4px); box-shadow: var(--shadow-2);` on drag or hover (with `prefers-reduced-motion` respected).
+- Provide clear focus styles: `outline-offset` and `box-shadow` focus ring.
+- Microcopy and affordances: inline hints, empty state illustrations, and ARIA live region announcements for major actions.
 
-- Save on every meaningful change with debounced writes (e.g., 300ms) to reduce thrashing and avoid corrupting data on rapid interactions.
-- Provide an import/export JSON option for backups and migration.
+## Accessibility & Keyboard
+- Keyboard reachable controls (Tab order), and keyboard actions for moving cards between lists (e.g., focus card → keyboard menu to move left/right).
+- ARIA roles: board (region), list (`list`), card (`listitem`), buttons with labels.
+- Respect `prefers-reduced-motion` and provide skip links or accessible fallbacks.
 
-## Implementation Notes & Best Practices
-- Single-page app with modular files: `index.html`, `styles.css`, `app.js` (or small module files).
-- Use event delegation for list/card actions to keep JS small and efficient.
-- Encapsulate state management in a tiny module with functions: `loadState()`, `saveState()`, `createList()`, `createCard()`, `moveCard()`.
-- Drag-and-drop: use `data-*` attributes to store ids, set `draggable=true` on cards, and maintain a lightweight drag overlay for smooth visuals.
-- Undo stack: implement a simple undo for destructive actions (delete list/card) via ephemeral toasts with an undo button.
+## Data & Persistence (practical)
+- State schema (versioned):
 
-## Deliverables
-- A runnable single-page frontend that opens in the browser (no build step required) and demonstrates all core features.
-- A short README with run instructions and design decisions.
-- Well-commented source code with clear separation between state, rendering, and behavior.
+```json
+{
+	"boards": [{
+		"id": "board_1",
+		"title": "My Board",
+		"lists": [{
+			"id": "list_1",
+			"title": "Todo",
+			"cards": [{ "id": "card_1", "title": "Task", "description": "...", "labels": [] }]
+		}]
+	}],
+	"meta": { "version": 1 }
+}
+```
 
-## Run / Try Locally
-- Open `index.html` in a browser (or run a tiny static server: `npx http-server` or `python -m http.server`).
+- Save on meaningful changes with debounced writes (300ms) and provide explicit import/export for backups.
 
-## Checklist (for this implementation)
-- [ ] Project scaffold (HTML/CSS/JS) created and documented
-- [ ] Lists (columns) implemented with create/edit/delete
-- [ ] Cards implemented with create/edit/delete/reorder
-- [ ] Drag-and-drop between lists with clear drop targets
-- [ ] Persistent state in `localStorage` with debounced saves
-- [ ] Responsive styles and accessible keyboard controls
-- [ ] Visual polish: motion, shadows, and subtle transitions
-- [ ] Undo for destructive actions via toast
-- [ ] Export/import backup feature
+## Implementation Notes & Minimal Structure
+- File scaffold: `index.html`, `styles.css`, `app.js` (or small modules). Keep CSS single-file for this small project.
+- Use event delegation and small state module: `loadState()`, `saveState()`, `createList()`, `createCard()`, `moveCard()`.
+- Keep code modular and well-commented; prefer clarity over cleverness.
 
-## Optional Production Enhancements (TODO)
-- Add labels, due dates, and card assignees with small data model extensions
-- Add multi-board support and a tiny sidebar for board switching
-- Add unit tests for critical state functions and end-to-end smoke tests
-- Add theming toggles (dark mode) and persist theme preference
+## Visual Examples (quick snippets)
+- `:root` tokens:
 
-## Notes for Implementer
-- Prioritize clarity and maintainability over clever one-liners. Keep functions small and pure where practical.
-- Leave inline TODO comments for future refactors and optimizations.
-- If you want, I can implement the initial UI (HTML/CSS/JS) following these guidelines — ask me to scaffold it and I will.
+```css
+:root {
+	--space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 32px;
+	--radius: 10px;
+	--shadow-1: 0 1px 2px rgba(0,0,0,0.06);
+	--shadow-2: 0 8px 20px rgba(0,0,0,0.12);
+	--color-bg: #f6f7fb; --color-surface: #ffffff; --color-accent: #3b82f6;
+}
+
+.board { display:flex; gap:var(--space-lg); align-items:flex-start; padding:var(--space-lg); }
+.list  { background:var(--color-surface); padding:var(--space-md); border-radius:var(--radius); box-shadow:var(--shadow-1); min-width:280px; }
+.cards { display:flex; flex-direction:column; gap:var(--space-xs); }
+.card  { background:linear-gradient(180deg,#fff,#fbfbff); padding:var(--space-sm); border-radius:8px; box-shadow:var(--shadow-1); }
+```
+
+## Deliverables (visual-first)
+- A runnable single-page frontend demonstrating all core features with polished styling and consistent spacing.
+- A short `README.md` describing design decisions and the spacing system.
+- Well-commented source with clear separation: state, rendering, behavior, and a style guide section in `styles.css`.
+
+## Checklist (visual-priority)
+- [ ] Project scaffold and style tokens
+- [ ] Lists implemented with consistent gaps and column spacing
+- [ ] Cards implemented with polish, drag visuals, and keyboard controls
+- [ ] Persistent `localStorage` with debounced writes
+- [ ] Visual polish: motion, shadows, focus styles, and responsive layout
+- [ ] README documenting spacing system and CSS patterns
+
+## Next Steps for Implementer
+- Scaffold the basic HTML/CSS/JS following the flexbox patterns above.
+- Implement the state module and localStorage persistence.
+- Add accessible keyboard controls for reordering and moving cards.
+- Iterate on visual polish and test on multiple viewport sizes.
+
+---
+Focus on delightful visuals, consistent spacing, and flexbox-first layout. If you'd like, I can scaffold the full HTML/CSS/JS now with the style tokens and initial UI components.

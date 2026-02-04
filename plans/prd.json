@@ -1,0 +1,306 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "project": "Trello-Style Kanban Board",
+    "description": "Lightweight, production-ready kanban SPA with accessibility and polished UX",
+    "created": "2026-02-04",
+    "lastUpdated": "2026-02-04",
+    "status": "not-started",
+    "targetFiles": ["index.html", "styles.css", "app.js", "README.md"]
+  },
+  "objectives": {
+    "primary": "Build a dependency-free, accessible Trello-style kanban board that runs in the browser",
+    "keyPrinciples": [
+      "No build tools or dependencies",
+      "WCAG AA+ accessibility compliance",
+      "Production-quality UX with micro-interactions",
+      "Maintainable, well-commented code",
+      "Responsive design for desktop and mobile"
+    ]
+  },
+  "features": [
+    {
+      "id": "F001",
+      "name": "Board and List Management",
+      "priority": "critical",
+      "status": "not-started",
+      "requirements": [
+        "Display board with multiple columns (lists)",
+        "Create new lists with inline editing",
+        "Edit list titles",
+        "Delete lists with confirmation",
+        "Clear visual hierarchy for boards and lists"
+      ],
+      "acceptanceCriteria": [
+        "User can add unlimited lists to a board",
+        "List titles are editable inline or via modal",
+        "Delete action shows confirmation with undo option",
+        "Lists maintain order and persist across sessions"
+      ],
+      "implementation": {
+        "files": ["index.html", "styles.css", "app.js"],
+        "keyFunctions": ["createList()", "editList()", "deleteList()"],
+        "dataModel": {
+          "list": {
+            "id": "string (uuid)",
+            "title": "string",
+            "cards": "array"
+          }
+        }
+      }
+    },
+    {
+      "id": "F002",
+      "name": "Card Management",
+      "priority": "critical",
+      "status": "not-started",
+      "requirements": [
+        "Create cards within lists",
+        "Edit card title and description",
+        "Delete cards with undo option",
+        "Support labels/tags on cards",
+        "Reorder cards within a list"
+      ],
+      "acceptanceCriteria": [
+        "Cards can be added to any list",
+        "Card editor supports title, description, and labels",
+        "Cards can be reordered via drag-and-drop or keyboard",
+        "Delete shows toast with undo button (5-second window)"
+      ],
+      "implementation": {
+        "files": ["index.html", "styles.css", "app.js"],
+        "keyFunctions": ["createCard()", "editCard()", "deleteCard()", "reorderCard()"],
+        "dataModel": {
+          "card": {
+            "id": "string (uuid)",
+            "title": "string",
+            "description": "string",
+            "labels": "array of strings"
+          }
+        }
+      }
+    },
+    {
+      "id": "F003",
+      "name": "Drag and Drop",
+      "priority": "high",
+      "status": "not-started",
+      "requirements": [
+        "HTML5 drag-and-drop for cards",
+        "Visual feedback during drag (opacity, shadow)",
+        "Clear drop target indicators",
+        "Move cards between lists",
+        "Reorder cards within same list",
+        "Smooth animations on drop"
+      ],
+      "acceptanceCriteria": [
+        "Cards can be dragged with mouse",
+        "Drop zones highlight when dragging over",
+        "Card position updates immediately on drop",
+        "Drag state persists to localStorage",
+        "Works on touch devices (mobile)"
+      ],
+      "implementation": {
+        "files": ["app.js", "styles.css"],
+        "keyFunctions": ["handleDragStart()", "handleDragOver()", "handleDrop()", "moveCard()"],
+        "cssClasses": ["is-dragging", "is-drop-target", "drag-overlay"],
+        "attributes": ["draggable=true", "data-card-id", "data-list-id"]
+      }
+    },
+    {
+      "id": "F004",
+      "name": "Data Persistence",
+      "priority": "critical",
+      "status": "not-started",
+      "requirements": [
+        "Store all state in localStorage",
+        "Debounced saves (300ms) to prevent thrashing",
+        "Versioned schema for future upgrades",
+        "Export board data as JSON",
+        "Import board data from JSON file"
+      ],
+      "acceptanceCriteria": [
+        "State persists across browser sessions",
+        "No data loss on rapid operations",
+        "Export produces valid JSON file",
+        "Import validates and loads JSON data",
+        "Schema version is tracked for migrations"
+      ],
+      "implementation": {
+        "files": ["app.js"],
+        "keyFunctions": ["loadState()", "saveState()", "exportData()", "importData()"],
+        "storageKey": "kanban_board_v1",
+        "dataSchema": {
+          "boards": "array",
+          "meta": {
+            "version": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "F005",
+      "name": "Accessibility & Keyboard Support",
+      "priority": "high",
+      "status": "not-started",
+      "requirements": [
+        "All interactive elements reachable via Tab",
+        "Keyboard shortcuts for card movement",
+        "ARIA roles and labels for screen readers",
+        "Live region announcements for state changes",
+        "Focus trap in modals",
+        "Respect prefers-reduced-motion"
+      ],
+      "acceptanceCriteria": [
+        "Tab navigation works throughout app",
+        "Screen reader announces all actions",
+        "Modal focus is trapped and restored on close",
+        "Keyboard users can move cards between lists",
+        "WCAG AA+ compliance verified"
+      ],
+      "implementation": {
+        "files": ["index.html", "app.js", "styles.css"],
+        "ariaAttributes": ["role", "aria-label", "aria-grabbed", "aria-live"],
+        "keyboardShortcuts": {
+          "Enter": "Edit focused card",
+          "Delete": "Delete focused card",
+          "Arrow keys": "Navigate between cards",
+          "Ctrl+Arrow": "Move card to adjacent list"
+        }
+      }
+    },
+    {
+      "id": "F006",
+      "name": "Visual Design & Theming",
+      "priority": "high",
+      "status": "not-started",
+      "requirements": [
+        "Design system with CSS custom properties",
+        "Light theme by default",
+        "Optional dark mode toggle",
+        "Micro-interactions and transitions",
+        "Elevation system with shadows",
+        "Responsive layout (mobile-first)"
+      ],
+      "acceptanceCriteria": [
+        "All theme tokens defined in :root",
+        "Smooth transitions on hover/focus",
+        "Shadows animate on card lift",
+        "Responsive breakpoints work on mobile",
+        "Dark mode persists across sessions"
+      ],
+      "implementation": {
+        "files": ["styles.css"],
+        "cssVariables": {
+          "colors": "--color-primary, --color-bg, --color-text, --color-border",
+          "spacing": "--spacing-xs, --spacing-sm, --spacing-md, --spacing-lg",
+          "shadows": "--shadow-sm, --shadow-md, --shadow-lg",
+          "radii": "--radius-sm, --radius-md",
+          "transitions": "--transition-fast, --transition-base"
+        },
+        "breakpoints": {
+          "mobile": "640px",
+          "tablet": "768px",
+          "desktop": "1024px"
+        }
+      }
+    },
+    {
+      "id": "F007",
+      "name": "Undo System",
+      "priority": "medium",
+      "status": "not-started",
+      "requirements": [
+        "Undo for destructive actions (delete)",
+        "Toast notification with undo button",
+        "5-second undo window",
+        "Single-level undo stack"
+      ],
+      "acceptanceCriteria": [
+        "Delete card shows toast with undo",
+        "Delete list shows toast with undo",
+        "Undo restores deleted item to original position",
+        "Toast auto-dismisses after 5 seconds"
+      ],
+      "implementation": {
+        "files": ["app.js", "styles.css"],
+        "keyFunctions": ["showUndo()", "performUndo()", "dismissUndo()"],
+        "dataStructure": {
+          "undoStack": {
+            "action": "string",
+            "data": "object",
+            "timestamp": "number"
+          }
+        }
+      }
+    }
+  ],
+  "technicalRequirements": {
+    "browser": {
+      "targets": ["Chrome 90+", "Firefox 88+", "Safari 14+", "Edge 90+"],
+      "features": ["localStorage", "HTML5 DnD", "CSS Custom Properties", "ES6+"]
+    },
+    "architecture": {
+      "pattern": "Module pattern with event delegation",
+      "files": [
+        {
+          "name": "index.html",
+          "purpose": "Semantic HTML structure, accessible markup"
+        },
+        {
+          "name": "styles.css",
+          "purpose": "Design system, responsive layout, BEM-style classes"
+        },
+        {
+          "name": "app.js",
+          "purpose": "State management, event handlers, persistence"
+        },
+        {
+          "name": "README.md",
+          "purpose": "Documentation, design decisions, usage guide"
+        }
+      ],
+      "principles": [
+        "Separation of concerns (state, rendering, behavior)",
+        "Event delegation for performance",
+        "Pure functions where possible",
+        "Inline TODO comments for future refactors"
+      ]
+    },
+    "performance": {
+      "targets": {
+        "initialLoad": "< 500ms",
+        "interactionLatency": "< 100ms",
+        "saveDebounce": "300ms"
+      }
+    }
+  },
+  "deliverables": [
+    {
+      "item": "index.html",
+      "status": "not-started",
+      "description": "Semantic HTML with accessible markup"
+    },
+    {
+      "item": "styles.css",
+      "status": "not-started",
+      "description": "Complete design system with responsive layout"
+    },
+    {
+      "item": "app.js",
+      "status": "not-started",
+      "description": "State management and interaction logic"
+    },
+    {
+      "item": "README.md",
+      "status": "not-started",
+      "description": "Usage guide and design decisions"
+    }
+  ],
+  "progress": {
+    "completedFeatures": [],
+    "inProgressFeatures": [],
+    "blockers": [],
+    "notes": []
+  }
+}
