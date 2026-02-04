@@ -197,6 +197,140 @@ class CopilotAgentManager {
     };
   }
 
+  /**
+   * Generate PRD from PROMPT.md if it doesn't exist
+   */
+  async generatePRDIfNeeded(id) {
+    const agent = this.agents.get(id);
+    if (!agent) throw new Error('Agent not found');
+
+    const prdPath = path.join(agent.workspaceDir, 'plans', 'prd.json');
+    const promptPath = path.join(agent.workspaceDir, 'PROMPT.md');
+
+    // Check if PRD already exists
+    if (await fs.pathExists(prdPath)) {
+      console.log(`[CopilotAgent] PRD already exists at: ${prdPath}`);
+      this.addLog(id, 'system', '✓ PRD file already exists, skipping generation');
+      return true;
+    }
+
+    console.log(`[CopilotAgent] PRD not found, generating from PROMPT.md...`);
+    this.addLog(id, 'system', '');
+    this.addLog(id, 'system', '📋 Generating PRD from PROMPT.md...');
+    this.addLog(id, 'system', '');
+
+    // Read the prompt content
+    const promptContent = await fs.readFile(promptPath, 'utf8');
+
+    // Build PowerShell command to call Copilot CLI once for PRD generation
+    const prdPrompt = `You are helping to create a structured Product Requirements Document (PRD) from a user's task description.
+
+Read the PROMPT.md file in the current directory and create a detailed plans/prd.json file with the following structure:
+
+{
+  "meta": {
+    "version": "1.0.0",
+    "project": "<project name from prompt>",
+    "description": "<brief description>",
+    "created": "<today's date YYYY-MM-DD>",
+    "lastUpdated": "<today's date YYYY-MM-DD>",
+    "status": "not-started"
+  },
+  "objectives": {
+    "primary": "<main goal from prompt>",
+    "keyPrinciples": ["<principle 1>", "<principle 2>", ...]
+  },
+  "features": [
+    {
+      "id": "F001",
+      "name": "<feature name>",
+      "priority": "high|medium|low",
+      "status": "not-started",
+      "requirements": ["<requirement 1>", "<requirement 2>", ...],
+      "acceptanceCriteria": ["<criteria 1>", "<criteria 2>", ...]
+    }
+  ],
+  "deliverables": ["<deliverable 1>", "<deliverable 2>", ...],
+  "progress": {
+    "completedFeatures": [],
+    "inProgressFeatures": [],
+    "blockers": [],
+    "notes": []
+  }
+}
+
+Break down the task in PROMPT.md into specific, actionable features with clear requirements and acceptance criteria.
+Create the plans/prd.json file with this structure.`;
+
+    // Write prompt to temp file to avoid PowerShell escaping issues
+    const prdPromptPath = path.join(agent.workspaceDir, '.prd-prompt.md');
+    await fs.writeFile(prdPromptPath, prdPrompt);
+
+    const psCommand = 'powershell.exe';
+    const args = [
+      '-NoProfile',
+      '-ExecutionPolicy', 'Bypass',
+      '-Command',
+      `Get-Content -Path '.prd-prompt.md' -Raw | copilot --model ${agent.model} --allow-all-tools --allow-tool write --allow-tool shell(composer) --allow-tool shell(npm) --allow-tool shell(npx) --allow-tool shell(git) --deny-tool shell(rm) --deny-tool "shell(git push)"`
+    ];
+
+    return new Promise((resolve, reject) => {
+      console.log(`[CopilotAgent] Calling Copilot CLI to generate PRD...`);
+      
+      const process = spawn(psCommand, args, {
+        cwd: agent.workspaceDir,
+        windowsHide: true,
+        shell: true
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      process.stdout.on('data', (data) => {
+        const output = data.toString();
+        stdout += output;
+        const clean = this.stripAnsiCodes(output);
+        console.log(`[CopilotAgent] PRD Gen STDOUT: ${clean}`);
+        this.addLog(id, 'stdout', clean);
+      });
+
+      process.stderr.on('data', (data) => {
+        const output = data.toString();
+        stderr += output;
+        const clean = this.stripAnsiCodes(output);
+        console.error(`[CopilotAgent] PRD Gen STDERR: ${clean}`);
+        this.addLog(id, 'stderr', clean);
+      });
+
+      process.on('exit', async (code) => {
+        if (code === 0) {
+          // Verify the PRD was created
+          if (await fs.pathExists(prdPath)) {
+            console.log(`[CopilotAgent] ✓ PRD generated successfully`);
+            this.addLog(id, 'system', '');
+            this.addLog(id, 'system', '✓ PRD generated successfully');
+            this.addLog(id, 'system', '');
+            resolve(true);
+          } else {
+            console.error(`[CopilotAgent] ✗ PRD file not created despite successful exit`);
+            this.addLog(id, 'error', '✗ PRD file was not created');
+            reject(new Error('PRD file was not created'));
+          }
+        } else {
+          console.error(`[CopilotAgent] ✗ PRD generation failed with code: ${code}`);
+          this.addLog(id, 'error', `✗ PRD generation failed (exit code: ${code})`);
+          reject(new Error(`PRD generation failed with exit code: ${code}`));
+        }
+      });
+
+      process.on('error', (error) => {
+        console.error(`[CopilotAgent] PRD generation error:`, error);
+        this.addLog(id, 'error', `PRD generation error: ${error.message}`);
+        reject(error);
+      });
+    });
+  }
+
   async startAgent(id) {
     const agent = this.agents.get(id);
     if (!agent) throw new Error('Agent not found');
@@ -226,6 +360,15 @@ class CopilotAgentManager {
     }
     console.log(`[CopilotAgent] ✓ Prompt file found`);
     
+    // Generate PRD if it doesn't exist
+    try {
+      await this.generatePRDIfNeeded(id);
+    } catch (error) {
+      console.error(`[CopilotAgent] Failed to generate PRD:`, error);
+      agent.status = 'error';
+      throw new Error(`Failed to generate PRD: ${error.message}`);
+    }
+    
     // Check if PowerShell is available
     const psCommand = 'powershell.exe';
     console.log(`[CopilotAgent] Using PowerShell: ${psCommand}`);
@@ -245,40 +388,28 @@ class CopilotAgentManager {
     // Build multi-line prompt that references source files
     const loopPrompt = `Work in the current repo. Use these files as your source of truth:
 - PROMPT.md (the user's original task/requirements)
-- plans/prd.json (structured PRD - you may need to create this first!)
+- plans/prd.json (structured PRD with features and requirements)
 - progress.txt (iteration log)
 
 WORKFLOW:
 
-STEP 0 (First iteration only): If plans/prd.json does NOT exist:
-  a) Read and analyze PROMPT.md carefully
-  b) Generate a detailed plans/prd.json with:
-     - meta: project info, version, status
-     - objectives: primary goal and key principles
-     - features: break down the task into specific features with:
-       * id, name, priority (high/medium/low)
-       * status (not-started/in-progress/completed)
-       * requirements and acceptance criteria
-     - deliverables: expected outputs
-     - progress: tracking section
-  c) Append to progress.txt that you created the PRD
-  d) Output <promise>COMPLETE</promise> if the task was ONLY to create a PRD
-  e) Continue to STEP 1 if there's actual implementation work
-
-STEP 1: Find the highest-priority feature in prd.json to work on.
+STEP 1: Read plans/prd.json and find the highest-priority feature to work on.
   - This should be the one YOU decide has the highest priority
   - Work only on that ONE feature this iteration
 
 STEP 2: Implement the feature incrementally and carefully
+  - Follow the requirements and acceptance criteria in the PRD
+  - Test your changes
 
 STEP 3: Update the PRD (plans/prd.json) with:
-  - Feature status change
+  - Feature status change (not-started → in-progress → completed)
   - Any new discoveries or blockers
   - Progress notes
 
 STEP 4: Append your progress to progress.txt
   - What you did this iteration
   - What's next
+  - Any important decisions or findings
 
 STEP 5: Make a git commit of that feature (if git is available)
 
