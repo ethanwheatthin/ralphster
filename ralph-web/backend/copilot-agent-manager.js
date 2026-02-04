@@ -334,41 +334,24 @@ Create the plans/prd.json file with this structure.`;
 ONLY WORK ON A SINGLE FEATURE.
 If, while implementing the feature, you notice the PRD is complete, output <promise>COMPLETE</promise>.`;
 
-    // Build copilot command directly (like the shell script does)
-    // Using PowerShell to call copilot with proper quoting
-    const copilotArgs = [
-      '--model', agent.model,
-      '-p', `@plans/prd.json @progress.txt ${loopPrompt}`,
-      '--allow-all-tools',
-      '--allow-tool', 'write',
-      '--allow-tool', 'shell(composer)',
-      '--allow-tool', 'shell(npm)',
-      '--allow-tool', 'shell(npx)',
-      '--allow-tool', 'shell(git)',
-      '--deny-tool', 'shell(rm)',
-      '--deny-tool', 'shell(git push)'
-    ];
+    // Write the full prompt to a temp file to avoid PowerShell escaping nightmares
+    const fullPrompt = `@plans/prd.json @progress.txt ${loopPrompt}`;
+    const promptTempFile = path.join(agent.workspaceDir, '.loop-prompt.txt');
+    await fs.writeFile(promptTempFile, fullPrompt);
 
-    // Build PowerShell command that calls copilot
-    const copilotArgsEscaped = copilotArgs.map(arg => {
-      if (arg.includes(' ') || arg.includes('@') || arg.includes('(') || arg.includes(')')) {
-        return `"${arg.replace(/"/g, '`"')}"`;
-      }
-      return arg;
-    }).join(' ');
-
+    // Build copilot command using the temp file
     const args = [
       '-NoProfile',
       '-ExecutionPolicy', 'Bypass',
       '-Command',
-      `copilot ${copilotArgsEscaped}`
+      `Get-Content -Path '.loop-prompt.txt' -Raw | copilot --model ${agent.model} --allow-all-tools --allow-tool write --allow-tool shell(composer) --allow-tool shell(npm) --allow-tool shell(npx) --allow-tool shell(git) --deny-tool shell(rm) --deny-tool "shell(git push)"`
     ];
 
     const maxIterations = agent.maxIterations > 0 ? agent.maxIterations : 20;
     console.log(`[CopilotAgent] Max iterations: ${maxIterations}`);
 
     // Log the command being run
-    console.log(`[CopilotAgent] Full command: copilot ${copilotArgsEscaped}`);
+    console.log(`[CopilotAgent] Prompt saved to: ${promptTempFile}`);
     console.log(`[CopilotAgent] Working directory: ${agent.workspaceDir}`);
     
     this.addLog(id, 'system', `╔════════════════════════════════════════════════════════════╗`);
