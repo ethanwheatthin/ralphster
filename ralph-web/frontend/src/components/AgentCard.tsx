@@ -122,7 +122,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
         )}
       </div>
 
-      <div className="agent-actions">
+      <div className="agent-actions flex layout-row layout-wrap layout-align-space-between-stretch">
         {agent.status === 'stopped' || agent.status === 'error' ? (
           <button className="btn btn-start" onClick={onStart}>
             <Play size={16} />
