@@ -208,8 +208,6 @@ function App() {
             🤖 Copilot CLI Agents
           </button>
         </div>
-        {activeTab === 'ollama' && (
-          <>
             <div className="header-stats">
               <div className="stat">
                 <span className="stat-value">{agents.length}</span>
@@ -236,8 +234,6 @@ function App() {
                 New Agent
               </button>
             </div>
-          </>
-        )}
       </header>
 
       <main className="app-main">

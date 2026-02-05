@@ -133,7 +133,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
             />
             <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
               💡 A structured PRD (plans/prd.json) and progress.txt will be auto-generated from this prompt.
-              Ralph will work iteratively using these files as source of truth.
+              Ralph will work iteratively using these files with Ollama (128k context, refreshed each loop).
             </small>
           </div>
 

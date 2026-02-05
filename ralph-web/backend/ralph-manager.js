@@ -2,14 +2,19 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
+const ollamaService = require('./ollama-service');
+const ToolExecutor = require('./tool-executor');
+const RalphLoopEngine = require('./ralph-loop-engine');
 
 class RalphManager {
   constructor(io) {
     this.io = io;
     this.agents = new Map();
+    this.loopEngines = new Map(); // Store active loop engines
     this.agentsDir = path.join(__dirname, 'agents');
-    // Use the simpler ralph-agent.ps1 script for web application
-    this.ralphScriptPath = path.join(__dirname, '../../ralph-agent.ps1');
+    // Use the new tool-enabled script
+    this.ralphScriptPath = path.join(__dirname, '../../ralph-agent-tools.ps1');
+    this.ollamaService = ollamaService;
     
     // Ensure agents directory exists
     fs.ensureDirSync(this.agentsDir);
@@ -55,13 +60,27 @@ class RalphManager {
     const id = uuidv4();
     const workspaceDir = path.join(this.agentsDir, id);
     
+    console.log(`[RalphManager] Creating agent: ${name} (${id})`);
+    
     // Create agent workspace
     await fs.ensureDir(workspaceDir);
+    
+    // Create plans directory
+    const plansDir = path.join(workspaceDir, 'plans');
+    await fs.ensureDir(plansDir);
+    console.log(`[RalphManager] Created plans directory`);
     
     // Create PROMPT.md
     const promptPath = path.join(workspaceDir, 'PROMPT.md');
     const defaultPrompt = promptContent || `# Ralph Agent: ${name}\n\n## Task Description\n\nDescribe your task here...\n`;
     await fs.writeFile(promptPath, defaultPrompt);
+    console.log(`[RalphManager] Created PROMPT.md`);
+
+    // Create progress.txt
+    const progressPath = path.join(workspaceDir, 'progress.txt');
+    const progressContent = `# Project Progress Log\n\n## ${new Date().toISOString()} - Agent Created\n- Agent: ${name}\n- ID: ${id}\n- Model: ${model}\n- Max Iterations: ${maxIterations || 'unlimited'}\n- Workspace: ${workspaceDir}\n\n## Instructions for Ralph\n1. Review plans/prd.json for structured requirements\n2. Work on the highest-priority feature\n3. Update prd.json with your progress\n4. Append your notes to this file after each iteration\n5. Output <promise>COMPLETE</promise> when all features are done\n\n---\n`;
+    await fs.writeFile(progressPath, progressContent);
+    console.log(`[RalphManager] Created progress.txt`);
 
     const agent = {
       id,
@@ -81,7 +100,166 @@ class RalphManager {
     
     this.broadcast('agent:created', this.getAgentInfo(agent));
     
+    // Generate PRD immediately after creation
+    console.log(`[RalphManager] Generating PRD for new agent...`);
+    try {
+      await this.generatePRDIfNeeded(id);
+    } catch (error) {
+      console.error(`[RalphManager] Failed to generate PRD:`, error);
+      this.addLog(id, 'error', `Failed to generate PRD: ${error.message}`);
+    }
+    
     return this.getAgentInfo(agent);
+  }
+
+  /**
+   * Generate PRD from PROMPT.md if it doesn't exist
+   */
+  async generatePRDIfNeeded(id) {
+    const agent = this.agents.get(id);
+    if (!agent) throw new Error('Agent not found');
+
+    const prdPath = path.join(agent.workspaceDir, 'plans', 'prd.json');
+    const promptPath = path.join(agent.workspaceDir, 'PROMPT.md');
+
+    // Check if PRD already exists
+    if (await fs.pathExists(prdPath)) {
+      console.log(`[RalphManager] PRD already exists, skipping generation`);
+      this.addLog(id, 'system', '✓ PRD already exists');
+      return;
+    }
+
+    console.log(`[RalphManager] PRD not found, generating from PROMPT.md...`);
+    this.addLog(id, 'system', '');
+    this.addLog(id, 'system', '📋 Generating PRD from PROMPT.md...');
+    this.addLog(id, 'system', '');
+
+    // Read the prompt content
+    const promptContent = await fs.readFile(promptPath, 'utf8');
+
+    // Create PRD generation prompt
+    const prdPrompt = `You are creating a structured Product Requirements Document (PRD) from a user's task description.
+
+Here is the task description:
+
+---
+${promptContent}
+---
+
+Create a detailed PRD in JSON format with the following structure:
+
+{
+  "meta": {
+    "version": "1.0.0",
+    "project": "<project name from prompt>",
+    "description": "<brief description>",
+    "created": "${new Date().toISOString().split('T')[0]}",
+    "lastUpdated": "${new Date().toISOString().split('T')[0]}",
+    "status": "not-started"
+  },
+  "objectives": {
+    "primary": "<main goal from prompt>",
+    "keyPrinciples": ["<principle 1>", "<principle 2>"]
+  },
+  "features": [
+    {
+      "id": "F001",
+      "name": "<feature name>",
+      "priority": "high|medium|low",
+      "status": "not-started",
+      "requirements": ["<requirement 1>", "<requirement 2>"],
+      "acceptanceCriteria": ["<criteria 1>", "<criteria 2>"]
+    }
+  ],
+  "deliverables": ["<deliverable 1>", "<deliverable 2>"],
+  "progress": {
+    "completedFeatures": [],
+    "inProgressFeatures": [],
+    "blockers": [],
+    "notes": []
+  }
+}
+
+Break down the task into specific, actionable features with clear requirements and acceptance criteria.
+Respond with ONLY the JSON, no other text.`;
+
+    try {
+      this.addLog(id, 'system', 'Calling Ollama to generate PRD...');
+      
+      // Use Ollama to generate the PRD
+      const response = await this.ollamaService.generate(agent.model, prdPrompt, {
+        temperature: 0.3,  // Lower temperature for more structured output
+        contextLength: 128000
+      });
+
+      // Try to extract JSON from response
+      let prdJson;
+      try {
+        // Try direct parse
+        prdJson = JSON.parse(response);
+      } catch (e) {
+        // Try to find JSON in code blocks
+        const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+          prdJson = JSON.parse(jsonMatch[1]);
+        } else {
+          // Try to find JSON object
+          const objectMatch = response.match(/\{[\s\S]*\}/);
+          if (objectMatch) {
+            prdJson = JSON.parse(objectMatch[0]);
+          } else {
+            throw new Error('Could not extract JSON from response');
+          }
+        }
+      }
+
+      // Write PRD to file
+      await fs.writeJson(prdPath, prdJson, { spaces: 2 });
+      
+      console.log(`[RalphManager] ✓ PRD generated successfully`);
+      this.addLog(id, 'system', '✓ PRD generated and saved to plans/prd.json');
+      this.addLog(id, 'system', '');
+      
+    } catch (error) {
+      console.error(`[RalphManager] Error generating PRD:`, error);
+      this.addLog(id, 'error', `Failed to generate PRD: ${error.message}`);
+      
+      // Create a basic PRD as fallback
+      const fallbackPRD = {
+        meta: {
+          version: "1.0.0",
+          project: agent.name,
+          description: "Auto-generated from PROMPT.md",
+          created: new Date().toISOString().split('T')[0],
+          lastUpdated: new Date().toISOString().split('T')[0],
+          status: "not-started"
+        },
+        objectives: {
+          primary: "See PROMPT.md for details",
+          keyPrinciples: ["Work incrementally", "Test thoroughly"]
+        },
+        features: [
+          {
+            id: "F001",
+            name: "Initial Implementation",
+            priority: "high",
+            status: "not-started",
+            requirements: ["Review PROMPT.md", "Implement core functionality"],
+            acceptanceCriteria: ["Code works as expected", "Basic tests pass"]
+          }
+        ],
+        deliverables: ["Working implementation"],
+        progress: {
+          completedFeatures: [],
+          inProgressFeatures: [],
+          blockers: [],
+          notes: []
+        }
+      };
+      
+      await fs.writeJson(prdPath, fallbackPRD, { spaces: 2 });
+      this.addLog(id, 'system', '⚠️ Created fallback PRD');
+    }
   }
 
   async startAgent(id) {
@@ -89,82 +267,77 @@ class RalphManager {
     if (!agent) throw new Error('Agent not found');
     if (agent.status === 'running') throw new Error('Agent already running');
 
-    const promptPath = path.join(agent.workspaceDir, 'PROMPT.md');
+    console.log(`[RalphManager] Starting agent ${id} (${agent.name})`);
     
-    // Check if ralph.ps1 exists
-    if (!await fs.pathExists(this.ralphScriptPath)) {
-      throw new Error(`Ralph script not found at: ${this.ralphScriptPath}`);
-    }
-    
-    // Check if PowerShell is available
-    const psCommand = 'powershell.exe';
-    
-    // Build PowerShell command
-    const args = [
-      '-NoProfile',
-      '-ExecutionPolicy', 'Bypass',
-      '-File', this.ralphScriptPath,
-      '-PromptFile', promptPath,
-      '-Model', agent.model
-    ];
-
-    if (agent.maxIterations > 0) {
-      args.push('-MaxIterations', agent.maxIterations.toString());
+    // Generate PRD if it doesn't exist
+    try {
+      await this.generatePRDIfNeeded(id);
+    } catch (error) {
+      console.error(`[RalphManager] Failed to generate PRD:`, error);
+      throw new Error(`Failed to generate PRD: ${error.message}`);
     }
 
-    // Log the command being run
-    const commandStr = `${psCommand} ${args.join(' ')}`;
-    this.addLog(id, 'system', `Starting agent with command: ${commandStr}`);
-    this.addLog(id, 'system', `Working directory: ${agent.workspaceDir}`);
+    // Log startup
+    this.addLog(id, 'system', `╔════════════════════════════════════════════════════════════╗`);
+    this.addLog(id, 'system', `║  🍩 RALPH LOOP STARTING (Native Ollama API)               ║`);
+    this.addLog(id, 'system', `╚════════════════════════════════════════════════════════════╝`);
+    this.addLog(id, 'system', ``);
+    this.addLog(id, 'system', `Agent: ${agent.name}`);
+    this.addLog(id, 'system', `Model: ${agent.model}`);
+    this.addLog(id, 'system', `Context: 128k tokens with tool calling`);
+    this.addLog(id, 'system', `Working Directory: ${agent.workspaceDir}`);
+    this.addLog(id, 'system', `Max Iterations: ${agent.maxIterations || 'unlimited'}`);
+    this.addLog(id, 'system', ``);
+    this.addLog(id, 'system', `─────────────────────────────────────────────────────────────`);
+    this.addLog(id, 'system', ``);
 
-    // Spawn PowerShell process
-    const process = spawn(psCommand, args, {
-      cwd: agent.workspaceDir,
-      windowsHide: true
-    });
+    // Create loop engine
+    const loopEngine = new RalphLoopEngine(
+      {
+        workspaceDir: agent.workspaceDir,
+        model: agent.model,
+        maxIterations: agent.maxIterations,
+        completionMarker: '<promise>COMPLETE</promise>'
+      },
+      (eventName, data) => {
+        // Event handler for loop engine events
+        if (eventName === 'log') {
+          this.addLog(id, data.level, data.message);
+        } else if (eventName === 'iteration') {
+          agent.currentIteration = data.iteration;
+          this.broadcast('agent:iteration', { id, iteration: data.iteration });
+        }
+      }
+    );
 
-    agent.process = process;
+    this.loopEngines.set(id, loopEngine);
     agent.status = 'running';
     agent.currentIteration = 0;
     agent.startedAt = new Date().toISOString();
-
-    // Handle stdout
-    process.stdout.on('data', (data) => {
-      const output = this.stripAnsiCodes(data.toString());
-      this.addLog(id, 'stdout', output);
-      
-      // Parse iteration count if present
-      const iterationMatch = output.match(/Iteration #(\d+)/);
-      if (iterationMatch) {
-        agent.currentIteration = parseInt(iterationMatch[1]);
-        this.broadcast('agent:iteration', { id, iteration: agent.currentIteration });
-      }
-    });
-
-    // Handle stderr
-    process.stderr.on('data', (data) => {
-      const output = this.stripAnsiCodes(data.toString());
-      this.addLog(id, 'stderr', output);
-    });
-
-    // Handle process exit
-    process.on('close', (code) => {
-      agent.status = 'stopped';
-      agent.process = null;
-      agent.stoppedAt = new Date().toISOString();
-      this.addLog(id, 'system', `Process exited with code ${code}`);
-      this.broadcast('agent:stopped', { id, code });
-    });
-
-    // Handle process error
-    process.on('error', (error) => {
-      agent.status = 'error';
-      agent.process = null;
-      this.addLog(id, 'error', `Process error: ${error.message}`);
-      this.broadcast('agent:error', { id, error: error.message });
-    });
+    agent.loopEngine = loopEngine;
 
     this.broadcast('agent:started', this.getAgentInfo(agent));
+
+    // Start the loop in background
+    loopEngine.start()
+      .then((result) => {
+        agent.status = 'stopped';
+        agent.stoppedAt = new Date().toISOString();
+        this.addLog(id, 'system', ``);
+        this.addLog(id, 'system', `╔════════════════════════════════════════════════════════════╗`);
+        this.addLog(id, 'system', `║  ✓ RALPH LOOP COMPLETED                                    ║`);
+        this.addLog(id, 'system', `╚════════════════════════════════════════════════════════════╝`);
+        this.addLog(id, 'success', `Completed ${result.iterations} iterations`);
+        this.loopEngines.delete(id);
+        this.broadcast('agent:stopped', { id, result });
+      })
+      .catch((error) => {
+        agent.status = 'error';
+        agent.stoppedAt = new Date().toISOString();
+        this.addLog(id, 'error', `Loop error: ${error.message}`);
+        this.loopEngines.delete(id);
+        this.broadcast('agent:error', { id, error: error.message });
+      });
   }
 
   async stopAgent(id) {
@@ -172,47 +345,32 @@ class RalphManager {
     if (!agent) throw new Error('Agent not found');
     if (agent.status !== 'running') throw new Error('Agent not running');
 
-    if (agent.process) {
-      agent.status = 'stopping';
-      this.broadcast('agent:stopping', { id });
-      this.addLog(id, 'system', 'Stopping agent...');
+    agent.status = 'stopping';
+    this.broadcast('agent:stopping', { id });
+    this.addLog(id, 'system', 'Stopping agent...');
 
-      try {
-        // On Windows, kill the entire process tree
-        if (process.platform === 'win32') {
-          // Use taskkill to forcefully terminate the process tree
-          const { exec } = require('child_process');
-          exec(`taskkill /pid ${agent.process.pid} /T /F`, (error) => {
-            if (error) {
-              this.addLog(id, 'system', `Taskkill error: ${error.message}`);
-            }
-          });
-        } else {
-          // On Unix-like systems, send SIGTERM then SIGKILL
-          agent.process.kill('SIGTERM');
-        }
-
-        // Force kill after timeout if still running
-        setTimeout(() => {
-          if (agent.process && !agent.process.killed) {
-            this.addLog(id, 'system', 'Force killing process...');
-            try {
-              if (process.platform === 'win32') {
-                const { exec } = require('child_process');
-                exec(`taskkill /pid ${agent.process.pid} /T /F`);
-              } else {
-                agent.process.kill('SIGKILL');
+    const loopEngine = this.loopEngines.get(id);
+    if (loopEngine) {
+      loopEngine.stop();
+      this.addLog(id, 'system', 'Loop engine stop requested');
+    } else {
+      // Fallback to PowerShell process kill if it's still using the old method
+      if (agent.process) {
+        try {
+          // On Windows, kill the entire process tree
+          if (process.platform === 'win32') {
+            const { exec } = require('child_process');
+            exec(`taskkill /pid ${agent.process.pid} /T /F`, (error) => {
+              if (error) {
+                this.addLog(id, 'system', `Taskkill error: ${error.message}`);
               }
-            } catch (e) {
-              this.addLog(id, 'error', `Force kill failed: ${e.message}`);
-            }
+            });
+          } else {
+            agent.process.kill('SIGTERM');
           }
-        }, 3000);
-
-      } catch (error) {
-        this.addLog(id, 'error', `Stop error: ${error.message}`);
-        agent.status = 'error';
-        this.broadcast('agent:error', { id, error: error.message });
+        } catch (error) {
+          this.addLog(id, 'error', `Stop error: ${error.message}`);
+        }
       }
     }
   }

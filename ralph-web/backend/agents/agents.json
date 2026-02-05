@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "d6172ede-1933-4944-ba79-e6dba83831e7",
+    "name": "apples",
+    "model": "gpt-oss:20b",
+    "maxIterations": 0,
+    "createdAt": "2026-02-05T16:07:49.837Z",
+    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\d6172ede-1933-4944-ba79-e6dba83831e7"
+  }
+]
