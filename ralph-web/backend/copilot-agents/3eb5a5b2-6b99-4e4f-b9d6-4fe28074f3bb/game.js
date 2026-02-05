@@ -3,7 +3,8 @@ const SIZE = 4;
 let grid;
 let score = 0;
 let hasWon = false;
-let animating = false; // placeholder for future animation locking
+let animating = false; // input lock during animated transitions
+const ANIM_DURATION = 150; // ms
 
 const boardEl = document.getElementById('board');
 const scoreEl = document.getElementById('score');
@@ -128,6 +129,8 @@ function move(direction){
     }
   }
   if(moved){
+    // lock inputs for duration of visual animation
+    animating = true;
     spawnRandom();
     updateScore();
     renderBoard();
@@ -137,6 +140,7 @@ function move(direction){
     if(!movesAvailable()){
       msgEl.textContent = 'Game Over — no moves available.';
     }
+    setTimeout(()=>{ animating = false; }, ANIM_DURATION);
   }
   return moved;
 }
@@ -159,6 +163,33 @@ window.addEventListener('keydown',e=>{
     e.preventDefault();
     const map = {ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
     move(map[key]);
+  }
+});
+
+// Touch swipe support
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+const SWIPE_THRESHOLD = 30; // px
+const SWIPE_TIME = 500; // ms
+
+boardEl.addEventListener('touchstart', e => {
+  if(e.touches && e.touches[0]){
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }
+});
+
+boardEl.addEventListener('touchend', e => {
+  if(animating) return;
+  const dx = (e.changedTouches[0].clientX - touchStartX);
+  const dy = (e.changedTouches[0].clientY - touchStartY);
+  const dt = Date.now() - touchStartTime;
+  if(dt > SWIPE_TIME) return;
+  if(Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) return;
+  if(Math.abs(dx) > Math.abs(dy)){
+    if(dx>0) move('right'); else move('left');
+  } else {
+    if(dy>0) move('down'); else move('up');
   }
 });
 
