@@ -15,4 +15,6 @@
 5. Output <promise>COMPLETE</promise> when all features are done
 
 2026-02-05T17:21:01.819Z - Started work on F001 (Game core): created index.html, style.css, game.js; implemented grid, spawn, slide and merge logic; updated plans/prd.json to mark F001 in-progress.
+
+2026-02-05T17:23:11.092Z - Completed F001 (Game core): validated slide, merge, and spawn behavior; new tile spawns after valid moves; win detection at 2048 present and game allows continuing. Noted animation-locking is a placeholder (animating flag) and will be implemented when working on animations/input blocking (F002/F003). Updated plans/prd.json to mark F001 completed.
 ---

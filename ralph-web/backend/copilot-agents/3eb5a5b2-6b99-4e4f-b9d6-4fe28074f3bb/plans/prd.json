@@ -22,7 +22,7 @@
       "id": "F001",
       "name": "Game core: grid, tiles, movement and merging",
       "priority": "high",
-      "status": "not-started",
+      "status": "completed",
       "requirements": [
         "Render a 4x4 grid and tile components",
         "Implement slide mechanics so tiles move as far as possible in the chosen direction",
@@ -36,7 +36,7 @@
         "A new tile appears after each valid move",
         "Game can detect win at 2048 but allows continuing play"
       ]
-    },
+    }
     {
       "id": "F002",
       "name": "Input controls (keyboard and touch)",
@@ -126,15 +126,16 @@
     "Developer documentation (how to run, build, and test)"
   ],
   "progress": {
-    "completedFeatures": [],
-    "inProgressFeatures": [
+    "completedFeatures": [
       "F001"
     ],
+    "inProgressFeatures": [],
     "blockers": [],
     "notes": [
-      "Started implementation of F001: core grid and move/merge logic in progress.",
-      "Focus implementation on using transforms/transitions to hit 60fps as requested in prompt",
-      "Keep merge logic robust so tiles only merge once per move"
+      "Started implementation of F001: core grid and move/merge logic completed.",
+      "Validated slide, merge, and spawn behavior; a new tile appears after each valid move and merging rules prevent double-merge per move.",
+      "Discovery: animation locking is currently a placeholder (animating flag) and inputs are not yet blocked during animated transitions — to be implemented under F003/F002 as appropriate.",
+      "Focus remains on CSS transforms/transitions for performance; minor layout sizing uses clientWidth which may need refinement for strict responsive behavior."
     ]
   }
 }
