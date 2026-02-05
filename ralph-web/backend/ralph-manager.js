@@ -87,12 +87,13 @@ class RalphManager {
       name: name || `Agent ${id.substring(0, 8)}`,
       model,
       maxIterations,
-      status: 'stopped',
+      status: 'initializing',
       workspaceDir,
       createdAt: new Date().toISOString(),
       currentIteration: 0,
       logs: [],
-      process: null
+      process: null,
+      statusMessage: 'Creating workspace...'
     };
 
     this.agents.set(id, agent);
@@ -103,10 +104,24 @@ class RalphManager {
     // Generate PRD immediately after creation
     console.log(`[RalphManager] Generating PRD for new agent...`);
     try {
+      // Update status to show PRD generation
+      agent.statusMessage = 'Generating PRD...';
+      this.broadcast('agent:status', { id, status: 'initializing', statusMessage: 'Generating PRD...' });
+      
       await this.generatePRDIfNeeded(id);
+      
+      // Mark as complete
+      agent.status = 'stopped';
+      agent.statusMessage = 'Ready to start';
+      await this.saveAgents();
+      this.broadcast('agent:status', { id, status: 'stopped', statusMessage: 'Ready to start' });
     } catch (error) {
       console.error(`[RalphManager] Failed to generate PRD:`, error);
+      agent.status = 'error';
+      agent.statusMessage = `Failed to generate PRD: ${error.message}`;
+      await this.saveAgents();
       this.addLog(id, 'error', `Failed to generate PRD: ${error.message}`);
+      this.broadcast('agent:status', { id, status: 'error', statusMessage: agent.statusMessage });
     }
     
     return this.getAgentInfo(agent);
@@ -447,7 +462,8 @@ Respond with ONLY the JSON, no other text.`;
       createdAt: agent.createdAt,
       startedAt: agent.startedAt,
       stoppedAt: agent.stoppedAt,
-      workspaceDir: agent.workspaceDir
+      workspaceDir: agent.workspaceDir,
+      statusMessage: agent.statusMessage
     };
   }
 

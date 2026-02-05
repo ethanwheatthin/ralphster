@@ -40,6 +40,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onCreate(formData);
+    onClose(); // Close modal immediately after initiating creation
   };
 
   return (

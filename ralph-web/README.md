@@ -321,3 +321,5 @@ Built with:
 ---
 
 **"Me fail English? That's unpossible!"** - Ralph Wiggum 🍩
+
+[Ralph](https://icons8.com/icon/Q5ljhHnVhC7L/ralph) icon by [Icons8](https://icons8.com)

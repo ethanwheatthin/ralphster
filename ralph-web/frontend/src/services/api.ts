@@ -115,6 +115,13 @@ class ApiService {
     if (!response.ok) throw new Error('Failed to open directory');
   }
 
+  async openAgentPRD(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/agents/${id}/open-prd`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to open PRD');
+  }
+
   // Copilot CLI Agent endpoints
   async getAllCopilotAgents(): Promise<CopilotAgent[]> {
     const response = await fetch(`${API_URL}/api/copilot-agents`);

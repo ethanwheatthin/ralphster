@@ -94,12 +94,18 @@ function App() {
         setSelectedAgentLogs(null);
       }
     });
+
+    socket.on('agent:status', ({ id, status, statusMessage }: { id: string; status: string; statusMessage?: string }) => {
+      setAgents(prev => prev.map(a => 
+        a.id === id ? { ...a, status: status as Agent['status'], statusMessage } : a
+      ));
+    });
   };
 
   const handleCreateAgent = async (data: CreateAgentRequest) => {
     try {
       await ApiService.createAgent(data);
-      setShowCreateModal(false);
+      // Modal closes itself immediately after initiating creation
     } catch (error) {
       console.error('Failed to create agent:', error);
       alert('Failed to create agent. Check console for details.');
@@ -178,8 +184,18 @@ function App() {
     }
   };
 
+  const handleViewPRD = async (id: string) => {
+    try {
+      await ApiService.openAgentPRD(id);
+    } catch (error) {
+      console.error('Failed to open PRD:', error);
+      alert('Failed to open PRD file. Check console for details.');
+    }
+  };
+
   const runningCount = agents.filter(a => a.status === 'running').length;
   const stoppedCount = agents.filter(a => a.status === 'stopped').length;
+  const initializingCount = agents.filter(a => a.status === 'initializing').length;
 
   return (
     <div className="app">
@@ -217,6 +233,12 @@ function App() {
                 <span className="stat-value">{runningCount}</span>
                 <span className="stat-label">Running</span>
               </div>
+              {initializingCount > 0 && (
+                <div className="stat initializing">
+                  <span className="stat-value">{initializingCount}</span>
+                  <span className="stat-label">Initializing</span>
+                </div>
+              )}
               <div className="stat stopped">
                 <span className="stat-value">{stoppedCount}</span>
                 <span className="stat-label">Stopped</span>
@@ -263,6 +285,7 @@ function App() {
                     onViewLogs={() => handleViewLogs(agent)}
                     onEdit={() => handleEditAgent(agent)}
                     onOpenDirectory={() => handleOpenDirectory(agent.id)}
+                    onViewPRD={() => handleViewPRD(agent.id)}
                   />
                 ))}
               </div>

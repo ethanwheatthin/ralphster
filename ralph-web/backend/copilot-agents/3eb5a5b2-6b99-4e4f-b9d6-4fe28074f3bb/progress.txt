@@ -18,4 +18,5 @@
 
 2026-02-05T17:23:11.092Z - Completed F001 (Game core): validated slide, merge, and spawn behavior; new tile spawns after valid moves; win detection at 2048 present and game allows continuing. Noted animation-locking is a placeholder (animating flag) and will be implemented when working on animations/input blocking (F002/F003). Updated plans/prd.json to mark F001 completed.
 2026-02-05T17:24:41.465Z - Started work on F002 (Input controls): added touch swipe detection on the board element and implemented a basic input lock during move animations (ANIM_DURATION=150ms). Updated plans/prd.json to mark F002 in-progress.
+2026-02-05T17:26:15.369Z - Implemented input blocking for F002: keyboard and touch inputs are now ignored while move animations run; updated game.js to check animating flag on keydown and touchstart.
 ---

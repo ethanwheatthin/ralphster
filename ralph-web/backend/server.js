@@ -193,6 +193,37 @@ app.post('/api/agents/:id/open-directory', (req, res) => {
   }
 });
 
+// Open agent PRD file in VS Code
+app.post('/api/agents/:id/open-prd', (req, res) => {
+  try {
+    const agent = ralphManager.getAgent(req.params.id);
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+    
+    const { exec } = require('child_process');
+    const path = require('path');
+    const prdPath = path.join(agent.workspaceDir, 'plans', 'prd.json');
+    
+    // Check if PRD file exists
+    const fs = require('fs');
+    if (!fs.existsSync(prdPath)) {
+      return res.status(404).json({ error: 'PRD file not found' });
+    }
+    
+    // Open in VS Code
+    exec(`code "${prdPath}"`, (error) => {
+      if (error) {
+        console.error('Error opening PRD:', error);
+        return res.status(500).json({ error: 'Failed to open PRD file. Make sure VS Code is installed.' });
+      }
+      res.json({ success: true });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============ COPILOT CLI AGENT ENDPOINTS ============
 
 // Get all Copilot agents

@@ -1,10 +1,10 @@
 [
   {
-    "id": "d6172ede-1933-4944-ba79-e6dba83831e7",
-    "name": "apples",
-    "model": "gpt-oss:20b",
+    "id": "e270d419-d4fd-4343-ac90-ca204ba6ea98",
+    "name": "2048",
+    "model": "qwen3-coder:30b",
     "maxIterations": 0,
-    "createdAt": "2026-02-05T16:07:49.837Z",
-    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\d6172ede-1933-4944-ba79-e6dba83831e7"
+    "createdAt": "2026-02-05T17:26:30.183Z",
+    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\agents\\e270d419-d4fd-4343-ac90-ca204ba6ea98"
   }
 ]

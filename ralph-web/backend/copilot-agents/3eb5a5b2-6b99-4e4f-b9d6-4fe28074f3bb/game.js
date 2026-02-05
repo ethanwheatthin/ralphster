@@ -158,6 +158,7 @@ function movesAvailable(){
 }
 
 window.addEventListener('keydown',e=>{
+  if(animating) return;
   const key = e.key;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){
     e.preventDefault();
@@ -172,6 +173,7 @@ const SWIPE_THRESHOLD = 30; // px
 const SWIPE_TIME = 500; // ms
 
 boardEl.addEventListener('touchstart', e => {
+  if(animating) return;
   if(e.touches && e.touches[0]){
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;

@@ -3,12 +3,13 @@ export interface Agent {
   name: string;
   model: string;
   maxIterations: number;
-  status: 'running' | 'stopped' | 'stopping' | 'error';
+  status: 'running' | 'stopped' | 'stopping' | 'error' | 'initializing';
   currentIteration: number;
   createdAt: string;
   startedAt?: string;
   stoppedAt?: string;
   workspaceDir: string;
+  statusMessage?: string;
 }
 
 export interface CopilotAgent {
