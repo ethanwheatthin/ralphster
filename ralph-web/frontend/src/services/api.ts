@@ -296,7 +296,7 @@ class ApiService {
     return (data.models || []).map((m: any) => m.id || m.name || m);
   }
 
-  async getLMStudioStatus(): Promise<{ running: boolean }> {
+  async getLMStudioStatus(): Promise<{ running: boolean; loadedModels: string[] }> {
     const response = await fetch(`${API_URL}/api/lmstudio/status`);
     if (!response.ok) throw new Error('Failed to check LM Studio status');
     return response.json();
@@ -314,6 +314,19 @@ class ApiService {
       method: 'POST'
     });
     if (!response.ok) throw new Error('Failed to open PRD');
+  }
+
+  async loadLMStudioModel(modelPath: string, contextLength?: number): Promise<{ success: boolean; message?: string }> {
+    const response = await fetch(`${API_URL}/api/lmstudio/load-model`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modelPath, contextLength })
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to load model' }));
+      throw new Error(error.error || 'Failed to load model');
+    }
+    return response.json();
   }
 }
 

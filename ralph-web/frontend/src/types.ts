@@ -74,4 +74,5 @@ export interface CreateLMStudioAgentRequest {
   model: string;
   promptContent: string;
   maxIterations: number;
+  contextLength?: number;
 }

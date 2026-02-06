@@ -51,6 +51,7 @@ class LMStudioManager {
         name: agent.name,
         model: agent.model,
         maxIterations: agent.maxIterations,
+        contextLength: agent.contextLength || 4096,
         createdAt: agent.createdAt,
         workspaceDir: agent.workspaceDir
       }));
@@ -62,7 +63,7 @@ class LMStudioManager {
 
   // ─── CRUD ────────────────────────────────────────────────────
 
-  async createAgent(name, model = '', promptContent = '', maxIterations = 0) {
+  async createAgent(name, model = '', promptContent = '', maxIterations = 0, contextLength = 4096) {
     const id = uuidv4();
     const workspaceDir = path.join(this.agentsDir, id);
 
@@ -80,7 +81,7 @@ class LMStudioManager {
 
     // progress.txt
     const progressPath = path.join(workspaceDir, 'progress.txt');
-    const progressContent = `# Project Progress Log\n\n## ${new Date().toISOString()} - Agent Created\n- Agent: ${name}\n- ID: ${id}\n- Model: ${model}\n- Provider: LM Studio\n- Max Iterations: ${maxIterations || 'unlimited'}\n- Workspace: ${workspaceDir}\n\n## Instructions for Ralph\n1. Review plans/prd.json for structured requirements\n2. Work on the highest-priority feature\n3. Update prd.json with your progress\n4. Append your notes to this file after each iteration\n5. Output <promise>COMPLETE</promise> when all features are done\n\n---\n`;
+    const progressContent = `# Project Progress Log\n\n## ${new Date().toISOString()} - Agent Created\n- Agent: ${name}\n- ID: ${id}\n- Model: ${model}\n- Provider: LM Studio\n- Max Iterations: ${maxIterations || 'unlimited'}\n- Context Length: ${contextLength} tokens\n- Workspace: ${workspaceDir}\n\n## Instructions for Ralph\n1. Review plans/prd.json for structured requirements\n2. Work on the highest-priority feature\n3. Update prd.json with your progress\n4. Append your notes to this file after each iteration\n5. Output <promise>COMPLETE</promise> when all features are done\n\n---\n`;
     await fs.writeFile(progressPath, progressContent);
 
     const agent = {
@@ -88,6 +89,7 @@ class LMStudioManager {
       name: name || `LMStudio Agent ${id.substring(0, 8)}`,
       model,
       maxIterations,
+      contextLength: contextLength || 4096,
       status: 'initializing',
       workspaceDir,
       createdAt: new Date().toISOString(),
@@ -286,6 +288,7 @@ Respond with ONLY the JSON, no other text.`;
     this.addLog(id, 'system', `Agent: ${agent.name}`);
     this.addLog(id, 'system', `Model: ${agent.model}`);
     this.addLog(id, 'system', `Provider: LM Studio (OpenAI-compat)`);
+    this.addLog(id, 'system', `Context Length: ${agent.contextLength || 4096} tokens`);
     this.addLog(id, 'system', `Working Directory: ${agent.workspaceDir}`);
     this.addLog(id, 'system', `Max Iterations: ${agent.maxIterations || 'unlimited'}`);
     this.addLog(id, 'system', ``);
@@ -298,6 +301,7 @@ Respond with ONLY the JSON, no other text.`;
         workspaceDir: agent.workspaceDir,
         model: agent.model,
         maxIterations: agent.maxIterations,
+        contextLength: agent.contextLength || 4096,
         completionMarker: '<promise>COMPLETE</promise>'
       },
       (eventName, data) => {

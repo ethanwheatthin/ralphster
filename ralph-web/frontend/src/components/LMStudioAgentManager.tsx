@@ -95,12 +95,28 @@ const LMStudioAgentManager: React.FC = () => {
     }
   };
 
-  const handleCreateAgent = async (data: CreateLMStudioAgentRequest) => {
+  const handleCreateAgent = async (data: CreateLMStudioAgentRequest, onProgress?: (message: string) => void) => {
     try {
+      // Check if model is already loaded
+      if (onProgress) onProgress('Checking model status...');
+      const status = await ApiService.getLMStudioStatus();
+      
+      // Only load the model if it's not already loaded
+      const isModelLoaded = status.loadedModels && status.loadedModels.includes(data.model);
+      if (!isModelLoaded) {
+        if (onProgress) onProgress(`Loading model with ${data.contextLength || 4096} token context...`);
+        await ApiService.loadLMStudioModel(data.model, data.contextLength);
+      } else {
+        if (onProgress) onProgress('Model already loaded, skipping...');
+      }
+      
+      // Create the agent
+      if (onProgress) onProgress('Creating agent...');
       await ApiService.createLMStudioAgent(data);
       setShowCreateModal(false);
     } catch (err: any) {
       setError(err.message);
+      throw err; // Re-throw to let modal handle it
     }
   };
 
@@ -334,7 +350,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
         </div>
       </div>
 
-      <div className="agent-actions">
+      <div className="agent-actions flex layout-row layout-wrap layout-align-space-between-stretch">
         {agent.status === 'stopped' || agent.status === 'error' ? (
           <button className="btn btn-start" onClick={onStart} disabled={disabled}>
             <Play size={16} />
@@ -388,7 +404,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
 
 interface CreateModalProps {
   onClose: () => void;
-  onCreate: (data: CreateLMStudioAgentRequest) => void;
+  onCreate: (data: CreateLMStudioAgentRequest, onProgress?: (message: string) => void) => void;
 }
 
 const CreateLMStudioAgentModal: React.FC<CreateModalProps> = ({ onClose, onCreate }) => {
@@ -396,10 +412,13 @@ const CreateLMStudioAgentModal: React.FC<CreateModalProps> = ({ onClose, onCreat
     name: '',
     model: '',
     promptContent: `# Ralph Agent Task\n\n## Task Description\n\nDescribe your task here...\n\n## Requirements\n\n- Requirement 1\n- Requirement 2\n\n## Constraints\n\n- Keep code simple and maintainable\n- Write tests\n`,
-    maxIterations: 0
+    maxIterations: 0,
+    contextLength: 4096
   });
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [creatingProgress, setCreatingProgress] = useState('');
 
   useEffect(() => {
     loadModels();
@@ -419,9 +438,20 @@ const CreateLMStudioAgentModal: React.FC<CreateModalProps> = ({ onClose, onCreat
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onCreate(formData);
+    setCreating(true);
+    setCreatingProgress('');
+    try {
+      await onCreate(formData, (message) => {
+        setCreatingProgress(message);
+      });
+    } catch (err) {
+      // Error already handled in parent
+    } finally {
+      setCreating(false);
+      setCreatingProgress('');
+    }
   };
 
   return (
@@ -481,6 +511,26 @@ const CreateLMStudioAgentModal: React.FC<CreateModalProps> = ({ onClose, onCreat
           </div>
 
           <div className="form-group">
+            <label htmlFor="lms-contextLength">Context Length</label>
+            <select
+              id="lms-contextLength"
+              value={formData.contextLength}
+              onChange={(e) => setFormData({ ...formData, contextLength: parseInt(e.target.value) })}
+            >
+              <option value="2048">2K tokens</option>
+              <option value="4096">4K tokens (recommended)</option>
+              <option value="8192">8K tokens</option>
+              <option value="16384">16K tokens</option>
+              <option value="32768">32K tokens</option>
+              <option value="65536">65K tokens</option>
+              <option value="131072">128K tokens</option>
+            </select>
+            <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+              💡 Higher context = more conversation history, but uses more memory.
+            </small>
+          </div>
+
+          <div className="form-group">
             <label htmlFor="lms-maxIterations">Max Iterations (0 = unlimited)</label>
             <input
               id="lms-maxIterations"
@@ -507,9 +557,34 @@ const CreateLMStudioAgentModal: React.FC<CreateModalProps> = ({ onClose, onCreat
             </small>
           </div>
 
+          {creating && creatingProgress && (
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#3b82f6', 
+              color: 'white', 
+              borderRadius: '6px', 
+              marginTop: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <div style={{ 
+                width: '16px', 
+                height: '16px', 
+                border: '2px solid white', 
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              {creatingProgress}
+            </div>
+          )}
+
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-primary">Create Agent</button>
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={creating}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={creating}>
+              {creating ? (creatingProgress || 'Creating...') : 'Create Agent'}
+            </button>
           </div>
         </form>
       </div>

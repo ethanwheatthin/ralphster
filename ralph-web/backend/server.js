@@ -372,8 +372,8 @@ app.get('/api/lmstudio-agents', (req, res) => {
 // Create new LM Studio agent
 app.post('/api/lmstudio-agents', async (req, res) => {
   try {
-    const { name, model, promptContent, maxIterations } = req.body;
-    const agent = await lmstudioManager.createAgent(name, model, promptContent, maxIterations);
+    const { name, model, promptContent, maxIterations, contextLength } = req.body;
+    const agent = await lmstudioManager.createAgent(name, model, promptContent, maxIterations, contextLength);
     res.status(201).json(agent);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -461,7 +461,12 @@ app.get('/api/lmstudio/models', async (req, res) => {
 app.get('/api/lmstudio/status', async (req, res) => {
   try {
     const running = await LMStudioService.isRunning();
-    res.json({ running });
+    let loadedModels = [];
+    if (running) {
+      const models = await LMStudioService.getAvailableModels();
+      loadedModels = models.map(m => m.id);
+    }
+    res.json({ running, loadedModels });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -472,6 +477,21 @@ app.post('/api/lmstudio/unload/:modelName', async (req, res) => {
     const success = await LMStudioService.unloadModel(req.params.modelName);
     res.json({ success });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Load a model into LM Studio memory
+app.post('/api/lmstudio/load-model', async (req, res) => {
+  try {
+    const { modelPath, contextLength } = req.body;
+    if (!modelPath) {
+      return res.status(400).json({ error: 'modelPath is required' });
+    }
+    const result = await LMStudioService.loadModel(modelPath, contextLength);
+    res.json({ success: true, message: 'Model loaded successfully', data: result });
+  } catch (error) {
+    console.error('Error loading model:', error);
     res.status(500).json({ error: error.message });
   }
 });

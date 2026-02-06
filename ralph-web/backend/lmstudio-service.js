@@ -174,6 +174,44 @@ class LMStudioService {
     }
   }
 
+  // Load a model into LM Studio memory
+  async loadModel(modelPath, contextLength) {
+    const startTime = Date.now();
+    const ctx = contextLength || 4096;
+    console.log(`[LMStudio] Loading model: ${modelPath} with context length: ${ctx}`);
+    
+    try {
+      const requestBody = {
+        model: modelPath,
+        context_length: ctx,
+        flash_attention: true,
+        echo_load_config: true
+      };
+      
+      const response = await fetch(`${LMSTUDIO_BASE_URL}/api/v1/models/load`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      const duration = Date.now() - startTime;
+      
+      if (!response.ok) {
+        const error = await response.text();
+        console.error(`[LMStudio] Load model failed after ${duration}ms: ${error}`);
+        throw new Error(`Failed to load model: ${error}`);
+      }
+
+      const data = await response.json();
+      console.log(`[LMStudio] Model loaded successfully in ${duration}ms`);
+      return data;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[LMStudio] Error loading model after ${duration}ms:`, error.message);
+      throw error;
+    }
+  }
+
   // Unload a model from LM Studio
   async unloadModel(modelName) {
     try {

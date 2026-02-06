@@ -375,6 +375,7 @@ class RalphLoopEngine {
               
               toolResults.push({
                 role: 'tool',
+                tool_call_id: toolCall.id,  // Add the required tool_call_id
                 content: result.success 
                   ? `Success: ${result.result}`
                   : `Error: ${result.error}`
