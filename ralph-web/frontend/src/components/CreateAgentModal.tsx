@@ -12,7 +12,7 @@ interface CreateAgentModalProps {
 const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }) => {
   const [formData, setFormData] = useState<CreateAgentRequest>({
     name: '',
-    model: 'qwen3-coder',
+    model: 'gpt-oss:20b',
     promptContent: `# Ralph Agent Task\n\n## Task Description\n\nDescribe your task here...\n\n## Requirements\n\n- Requirement 1\n- Requirement 2\n\n## Constraints\n\n- Keep code simple and maintainable\n- Write tests\n`,
     maxIterations: 0
   });
@@ -98,7 +98,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
                   type="text"
                   value={formData.model}
                   onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  placeholder="e.g., qwen3-coder, glm-4.7, gpt-oss:20b"
+                  placeholder="e.g., glm-4.7, gpt-oss:20b"
                   required
                 />
                 <small style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
@@ -107,7 +107,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ onClose, onCreate }
               </>
             )}
             <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-              Popular models: qwen3-coder, glm-4.7, gpt-oss:20b, deepseek-coder
+              Popular models: glm-4.7, gpt-oss:20b, deepseek-coder
             </small>
           </div>
 

@@ -100,7 +100,7 @@ const EditAgentModal: React.FC<EditAgentModalProps> = ({ agent, initialPrompt, o
                   type="text"
                   value={formData.model}
                   onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  placeholder="e.g., qwen3-coder, glm-4.7, gpt-oss:20b"
+                  placeholder="e.g., glm-4.7, gpt-oss:20b"
                   required
                 />
                 <small style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
@@ -109,7 +109,7 @@ const EditAgentModal: React.FC<EditAgentModalProps> = ({ agent, initialPrompt, o
               </>
             )}
             <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-              Popular models: qwen3-coder, glm-4.7, gpt-oss:20b, deepseek-coder
+              Popular models: glm-4.7, gpt-oss:20b, deepseek-coder
             </small>
           </div>
 

@@ -12,7 +12,7 @@ class RalphLoopEngine {
     this.config = config;
     this.eventEmitter = eventEmitter;
     this.workspaceDir = config.workspaceDir;
-    this.model = config.model || 'qwen3-coder';
+    this.model = config.model || 'gpt-oss:20b';
     this.maxIterations = config.maxIterations || 0;
     this.completionMarker = config.completionMarker || '<promise>COMPLETE</promise>';
     this.toolExecutor = new ToolExecutor(this.workspaceDir);

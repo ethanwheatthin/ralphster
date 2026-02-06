@@ -56,7 +56,7 @@ class RalphManager {
     }
   }
 
-  async createAgent(name, model = 'qwen3-coder', promptContent = '', maxIterations = 0) {
+  async createAgent(name, model = 'gpt-oss:20b', promptContent = '', maxIterations = 0) {
     const id = uuidv4();
     const workspaceDir = path.join(this.agentsDir, id);
     
