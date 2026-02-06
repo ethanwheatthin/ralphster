@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Agent, LogEntry, CreateAgentRequest, UpdateAgentRequest, CopilotAgent, CreateCopilotAgentRequest } from '../types';
+import { Agent, LogEntry, CreateAgentRequest, UpdateAgentRequest, CopilotAgent, CreateCopilotAgentRequest, LMStudioAgent, CreateLMStudioAgentRequest } from '../types';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -213,6 +213,107 @@ class ApiService {
     if (!response.ok) throw new Error('Failed to fetch Copilot models');
     const data = await response.json();
     return data.models;
+  }
+
+  // ──────────── LM Studio Agent endpoints ────────────
+
+  async getAllLMStudioAgents(): Promise<LMStudioAgent[]> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents`);
+    if (!response.ok) throw new Error('Failed to fetch LM Studio agents');
+    return response.json();
+  }
+
+  async createLMStudioAgent(data: CreateLMStudioAgentRequest): Promise<LMStudioAgent> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to create LM Studio agent' }));
+      throw new Error(error.error || 'Failed to create LM Studio agent');
+    }
+    return response.json();
+  }
+
+  async getLMStudioAgent(id: string): Promise<LMStudioAgent> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch LM Studio agent');
+    return response.json();
+  }
+
+  async getLMStudioPrompt(id: string): Promise<string> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}/prompt`);
+    if (!response.ok) throw new Error('Failed to fetch prompt');
+    const data = await response.json();
+    return data.prompt;
+  }
+
+  async updateLMStudioPrompt(id: string, promptContent: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}/prompt`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ promptContent })
+    });
+    if (!response.ok) throw new Error('Failed to update prompt');
+  }
+
+  async startLMStudioAgent(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}/start`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to start LM Studio agent');
+  }
+
+  async stopLMStudioAgent(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}/stop`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to stop LM Studio agent');
+  }
+
+  async deleteLMStudioAgent(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to delete LM Studio agent' }));
+      throw new Error(error.error || 'Failed to delete LM Studio agent');
+    }
+  }
+
+  async getLMStudioLogs(id: string): Promise<LogEntry[]> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}/logs`);
+    if (!response.ok) throw new Error('Failed to fetch logs');
+    const data = await response.json();
+    return data.logs;
+  }
+
+  async getLMStudioModels(): Promise<string[]> {
+    const response = await fetch(`${API_URL}/api/lmstudio/models`);
+    if (!response.ok) throw new Error('Failed to fetch LM Studio models');
+    const data = await response.json();
+    return (data.models || []).map((m: any) => m.id || m.name || m);
+  }
+
+  async getLMStudioStatus(): Promise<{ running: boolean }> {
+    const response = await fetch(`${API_URL}/api/lmstudio/status`);
+    if (!response.ok) throw new Error('Failed to check LM Studio status');
+    return response.json();
+  }
+
+  async openLMStudioAgentDirectory(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}/open-directory`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to open directory');
+  }
+
+  async openLMStudioAgentPRD(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/lmstudio-agents/${id}/open-prd`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to open PRD');
   }
 }
 

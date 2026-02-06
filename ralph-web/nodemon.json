@@ -5,6 +5,7 @@
   "ignore": [
     "backend/agents/**",
     "backend/copilot-agents/**",
+    "backend/lmstudio-agents/**",
     "frontend/**",
     "node_modules/**"
   ],

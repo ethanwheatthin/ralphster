@@ -54,3 +54,24 @@ export interface UpdateAgentRequest {
   promptContent: string;
   maxIterations: number;
 }
+
+export interface LMStudioAgent {
+  id: string;
+  name: string;
+  model: string;
+  maxIterations: number;
+  status: 'running' | 'stopped' | 'stopping' | 'error' | 'initializing';
+  currentIteration: number;
+  createdAt: string;
+  startedAt?: string;
+  stoppedAt?: string;
+  workspaceDir: string;
+  statusMessage?: string;
+}
+
+export interface CreateLMStudioAgentRequest {
+  name: string;
+  model: string;
+  promptContent: string;
+  maxIterations: number;
+}

@@ -6,6 +6,8 @@ const path = require('path');
 const RalphManager = require('./ralph-manager');
 const OllamaService = require('./ollama-service');
 const CopilotAgentManager = require('./copilot-agent-manager');
+const LMStudioManager = require('./lmstudio-manager');
+const LMStudioService = require('./lmstudio-service');
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +35,8 @@ const ralphManager = new RalphManager(io);
 console.log('[Server] ✓ Ralph Manager initialized');
 const copilotAgentManager = new CopilotAgentManager(io);
 console.log('[Server] ✓ Copilot Agent Manager initialized');
+const lmstudioManager = new LMStudioManager(io);
+console.log('[Server] ✓ LM Studio Manager initialized');
 
 // REST API Endpoints
 
@@ -357,6 +361,153 @@ app.post('/api/copilot-agents/:id/open-directory', (req, res) => {
   }
 });
 
+// ============ LM STUDIO AGENT ENDPOINTS ============
+
+// Get all LM Studio agents
+app.get('/api/lmstudio-agents', (req, res) => {
+  const agents = lmstudioManager.getAllAgents();
+  res.json(agents);
+});
+
+// Create new LM Studio agent
+app.post('/api/lmstudio-agents', async (req, res) => {
+  try {
+    const { name, model, promptContent, maxIterations } = req.body;
+    const agent = await lmstudioManager.createAgent(name, model, promptContent, maxIterations);
+    res.status(201).json(agent);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get specific LM Studio agent
+app.get('/api/lmstudio-agents/:id', (req, res) => {
+  const agent = lmstudioManager.getAgent(req.params.id);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+  res.json(agent);
+});
+
+// Get LM Studio agent prompt
+app.get('/api/lmstudio-agents/:id/prompt', async (req, res) => {
+  try {
+    const prompt = await lmstudioManager.getPrompt(req.params.id);
+    res.json({ prompt });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update LM Studio agent prompt
+app.put('/api/lmstudio-agents/:id/prompt', async (req, res) => {
+  try {
+    const { promptContent } = req.body;
+    await lmstudioManager.updatePrompt(req.params.id, promptContent);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Start LM Studio agent
+app.post('/api/lmstudio-agents/:id/start', async (req, res) => {
+  try {
+    await lmstudioManager.startAgent(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Stop LM Studio agent
+app.post('/api/lmstudio-agents/:id/stop', async (req, res) => {
+  try {
+    await lmstudioManager.stopAgent(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete LM Studio agent
+app.delete('/api/lmstudio-agents/:id', async (req, res) => {
+  try {
+    await lmstudioManager.deleteAgent(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get LM Studio agent logs
+app.get('/api/lmstudio-agents/:id/logs', (req, res) => {
+  try {
+    const logs = lmstudioManager.getLogs(req.params.id);
+    res.json({ logs });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// LM Studio model / status endpoints
+app.get('/api/lmstudio/models', async (req, res) => {
+  try {
+    const models = await LMStudioService.getAvailableModels();
+    res.json({ models });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/lmstudio/status', async (req, res) => {
+  try {
+    const running = await LMStudioService.isRunning();
+    res.json({ running });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/lmstudio/unload/:modelName', async (req, res) => {
+  try {
+    const success = await LMStudioService.unloadModel(req.params.modelName);
+    res.json({ success });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Open LM Studio agent directory
+app.post('/api/lmstudio-agents/:id/open-directory', (req, res) => {
+  try {
+    const agent = lmstudioManager.getAgent(req.params.id);
+    if (!agent) return res.status(404).json({ error: 'Agent not found' });
+    const { exec } = require('child_process');
+    exec(`explorer "${agent.workspaceDir}"`, (error) => {
+      if (error) return res.status(500).json({ error: 'Failed to open directory' });
+      res.json({ success: true });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Open LM Studio agent PRD
+app.post('/api/lmstudio-agents/:id/open-prd', (req, res) => {
+  try {
+    const agent = lmstudioManager.getAgent(req.params.id);
+    if (!agent) return res.status(404).json({ error: 'Agent not found' });
+    const { exec } = require('child_process');
+    const prdPath = path.join(agent.workspaceDir, 'plans', 'prd.json');
+    if (!require('fs').existsSync(prdPath)) return res.status(404).json({ error: 'PRD file not found' });
+    exec(`code "${prdPath}"`, (error) => {
+      if (error) return res.status(500).json({ error: 'Failed to open PRD file' });
+      res.json({ success: true });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // WebSocket connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -387,5 +538,6 @@ server.listen(PORT, () => {
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down...');
   await ralphManager.stopAll();
+  await lmstudioManager.stopAll();
   process.exit(0);
 });

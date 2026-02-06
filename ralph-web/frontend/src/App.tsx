@@ -7,10 +7,11 @@ import EditAgentModal from './components/EditAgentModal';
 import LogViewer from './components/LogViewer';
 import ModelManager from './components/ModelManager';
 import CopilotAgentManager from './components/CopilotAgentManager';
+import LMStudioAgentManager from './components/LMStudioAgentManager';
 import { Plus, RefreshCw } from 'lucide-react';
 import './App.css';
 
-type Tab = 'ollama' | 'copilot';
+type Tab = 'ollama' | 'copilot' | 'lmstudio';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('ollama');
@@ -223,6 +224,12 @@ function App() {
           >
             🤖 Copilot CLI Agents
           </button>
+          <button
+            className={`tab ${activeTab === 'lmstudio' ? 'active' : ''}`}
+            onClick={() => setActiveTab('lmstudio')}
+          >
+            🖥️ LM Studio Agents
+          </button>
         </div>
             <div className="header-stats">
               <div className="stat">
@@ -291,8 +298,10 @@ function App() {
               </div>
             )}
           </>
-        ) : (
+        ) : activeTab === 'copilot' ? (
           <CopilotAgentManager />
+        ) : (
+          <LMStudioAgentManager />
         )}
       </main>
 

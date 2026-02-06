@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "project": "Ralph Agent Task",
+    "description": "Create an empty 'apples' directory and a Python script that draws a green apple inside it.",
+    "created": "2026-02-06",
+    "lastUpdated": "2026-02-06",
+    "status": "not-started"
+  },
+  "objectives": {
+    "primary": "Generate a simple, maintainable Python script to draw a green apple and place it in an empty 'apples' directory.",
+    "keyPrinciples": [
+      "Simplicity",
+      "Maintainability"
+    ]
+  },
+  "features": [
+    {
+      "id": "F001",
+      "name": "Create Empty Directory",
+      "priority": "high",
+      "status": "completed",
+      "requirements": [
+        "The script must create a directory named 'apples' if it does not already exist.",
+        "The directory creation logic should be idempotent (running multiple times should not cause errors)."
+      ],
+      "acceptanceCriteria": [
+        "Running the script results in an 'apples' folder being present in the current working directory.",
+        "If the folder already exists, no exception is thrown and the script continues."
+      ],
+      "notes": "Created empty directory 'apples' idempotently.",
+      "lastUpdated": "2026-02-06T16:00:43.188Z"
+    },
+    {
+      "id": "F002",
+      "name": "Draw Green Apple Script",
+      "priority": "high",
+      "status": "completed",
+      "requirements": [
+        "The script must use a standard graphics library (e.g., Pillow) to draw a green apple shape.",
+        "The output image should be saved as 'apple.png' inside the 'apples' directory.",
+        "The code should be clear, commented, and avoid unnecessary complexity."
+      ],
+      "acceptanceCriteria": [
+        "\"apple.png\" exists in the 'apples' folder after script execution.",
+        "The image contains a green apple shape (verified by visual inspection or pixel color check).",
+        "No external dependencies beyond Pillow are required."
+      ],
+      "notes": "Implemented drawing and saving apple image.",
+      "lastUpdated": "2026-02-06T16:00:44.133Z"
+    }
+  ],
+  "deliverables": [
+    "Python script file (e.g., draw_apple.py)",
+    "Generated 'apples/apple.png' image"
+  ],
+  "progress": {
+    "completedFeatures": [],
+    "inProgressFeatures": [],
+    "blockers": [],
+    "notes": []
+  }
+}
