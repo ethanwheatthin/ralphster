@@ -1,10 +1,18 @@
 [
   {
-    "id": "111aa3d4-d383-4a80-ac31-04305362495f",
+    "id": "381c5885-0686-4773-87ea-9e3537745d8a",
     "name": "apples",
     "model": "openai/gpt-oss-20b",
     "maxIterations": 0,
-    "createdAt": "2026-02-06T16:00:08.327Z",
-    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\lmstudio-agents\\111aa3d4-d383-4a80-ac31-04305362495f"
+    "createdAt": "2026-02-06T16:06:41.911Z",
+    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\lmstudio-agents\\381c5885-0686-4773-87ea-9e3537745d8a"
+  },
+  {
+    "id": "526bfde8-4de4-4856-b824-83a35b5c3431",
+    "name": "2048",
+    "model": "openai/gpt-oss-20b",
+    "maxIterations": 0,
+    "createdAt": "2026-02-06T16:10:19.773Z",
+    "workspaceDir": "C:\\Users\\Ethan\\Desktop\\Code_Playground\\claude plugins\\ralphster\\ralph-web\\backend\\lmstudio-agents\\526bfde8-4de4-4856-b824-83a35b5c3431"
   }
 ]

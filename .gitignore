@@ -53,3 +53,5 @@ ralph-web/frontend/node_modules/
 
 ralph-web/backend/agents
 ralph-web/backend/copilot-agents
+ralph-web/backend/lmstudio-agents
+

@@ -36,6 +36,7 @@ class LMStudioService {
         messages: [{ role: 'user', content: prompt }],
         temperature: options.temperature || 0.7,
         max_tokens: options.max_tokens || -1,
+        context_length: options.contextLength || 128000,
         stream: false
       };
 
@@ -80,6 +81,7 @@ class LMStudioService {
         messages: messages,
         temperature: options.temperature || 0.7,
         max_tokens: options.max_tokens || -1,
+        context_length: options.contextLength || 128000,
         stream: false
       };
 
@@ -126,6 +128,7 @@ class LMStudioService {
         tools: tools,
         temperature: options.temperature || 0.7,
         max_tokens: options.max_tokens || -1,
+        context_length: options.contextLength || 128000,
         stream: false
       };
 

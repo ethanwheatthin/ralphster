@@ -61,7 +61,15 @@ const LMStudioAgentManager: React.FC = () => {
     });
 
     return () => {
-      // listeners cleaned up on disconnect
+      // Clean up socket listeners
+      socket.off('lmstudio-agent:created');
+      socket.off('lmstudio-agent:started');
+      socket.off('lmstudio-agent:stopped');
+      socket.off('lmstudio-agent:stopping');
+      socket.off('lmstudio-agent:error');
+      socket.off('lmstudio-agent:iteration');
+      socket.off('lmstudio-agent:deleted');
+      socket.off('lmstudio-agent:status');
     };
   }, []);
 
